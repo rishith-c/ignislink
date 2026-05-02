@@ -121,3 +121,8 @@
 - Verification: `pnpm test` pass (9/9), `pnpm typecheck` pass (9/9), `pnpm build` pass (6/6), Python `pytest` pass (5), Ruff pass, mypy pass for `ignislink_api`.
 - Could not run `docker compose config` locally because Docker is not installed in this environment.
 - Root `.gitignore` now ignores `.claude/`, `.venv*/`, and `*.onnx.data` so Claude local config and ONNX sidecar weights do not pollute Git status.
+
+## 2026-05-02T16:36:50Z - codex
+
+- Opened draft PR #18 for `feat/infra/stage-0-backend`, based on `feat/web/stage-0-scaffold` because PR #3 has not merged yet.
+- PR #18 should be retargeted to `main` after PR #3 lands.
