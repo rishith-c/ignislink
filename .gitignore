@@ -1,0 +1,63 @@
+# Node / pnpm / Turborepo
+node_modules/
+.pnpm-store/
+.turbo/
+.next/
+.vercel/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.eslintcache
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env.venv
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ML artifacts
+mlruns/
+mlflow.db
+checkpoints/
+*.ckpt
+*.onnx
+*.pth
+ml/data/raw/
+ml/data/processed/
+ml/data/cache/
+*.tif
+*.tiff
+*.nc
+*.grib2
+!ml/data/fixtures/**/*.tif
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+
+# Logs / tmp
+*.log
+logs/
+tmp/
+.cache/
+
+# Lock holder file (the LOCK directory itself is tracked by convention but transient)
+.agents/LOCK/

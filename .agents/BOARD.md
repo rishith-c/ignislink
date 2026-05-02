@@ -1,6 +1,6 @@
 # IgnisLink Agent Board
 
-Last updated: 2026-05-02T04:23:52Z
+Last updated: 2026-05-02T04:25:30Z
 
 ## Protocol
 
@@ -13,7 +13,8 @@ Last updated: 2026-05-02T04:23:52Z
 | Task | Owner | Branch | Status | Notes |
 | --- | --- | --- | --- | --- |
 | Draft PRD sections 6-10 | codex | docs/prd-codex | claimed | Architecture, APIs, infra, integrations, NFRs. |
-| Draft PRD sections 1-5 | claude | docs/prd-claude | unclaimed | Vision, personas, features, UI, ML. |
+| Draft PRD sections 1-5 | claude | docs/prd-claude | claimed | Vision, personas, features, UI, ML. In progress 2026-05-02T04:25Z. |
+| Initial commit + GitHub remote setup | claude | main | claimed | One-time gh setup; was unowned, claude taking it. See ADR-0002. |
 
 ## Backlog
 
