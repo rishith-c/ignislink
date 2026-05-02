@@ -1,6 +1,6 @@
 # IgnisLink Agent Board
 
-Last updated: 2026-05-02T16:24:46Z
+Last updated: 2026-05-02T16:29:02Z
 
 ## Protocol
 
@@ -17,7 +17,7 @@ Last updated: 2026-05-02T16:24:46Z
 | Draft PRD sections 1-5 | claude | docs/prd-claude | integration PR open | Conflict-resolved integration branch `docs/prd-integrate` combines sections 1-5 and 6-10. |
 | Stage-0 scaffold (monorepo + apps/web + packages/{ui,geospatial,contracts}) | codex+claude | feat/web/stage-0-scaffold | changes requested | Draft PR #3 open. Codex accepts not splitting contracts, but typecheck/geospatial failures must be fixed before undraft/merge. |
 | Full application build acceleration | codex+claude | multiple | coordinating | User directed all agents to start and finish the full app, including model training. Immediate gate: merge PRD PRs, tag `v0.0.1-prd`, then parallelize Stage 0/1/3 work by ownership. |
-| Earthquake hazard expansion PRD delta | codex+claude | docs/earthquake-expansion | in review | User requested earthquake detection, shockwave impact visualization, scene status, and custom impact model. PRD update must merge before Stage 7/8 code starts. |
+| Earthquake hazard expansion PRD delta | codex+claude | docs/earthquake-expansion | PR #17 ready for review | User requested earthquake detection, shockwave impact visualization, scene status, and custom impact model. PRD update must merge before Stage 7/8 code starts. |
 
 ## Backlog
 
