@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Flame, Search, MapPin, Wind, AlertCircle, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { FIXTURE_INCIDENTS, type FixtureIncident } from "@/lib/fixtures";
-import { IgnisMap } from "@/components/map/IgnisMap";
+import { LeafletMap } from "@/components/map/MapContainer";
 import { cn } from "@/lib/utils";
 
 // Use the static ageMinutes from the fixture to avoid hydration drift —
@@ -149,19 +149,22 @@ export default function HomePage() {
           </form>
 
           <div className="relative">
-            <IgnisMap
-              hotspots={PUBLIC_INCIDENTS.map((i) => ({
+            <LeafletMap
+              incidents={PUBLIC_INCIDENTS.map((i) => ({
                 id: i.id,
+                shortId: i.shortId,
                 lat: i.lat,
                 lon: i.lon,
                 status: i.verification,
                 windDirDeg: i.windDirDeg,
                 windSpeedMs: i.windSpeedMs,
-                shortId: i.shortId,
               }))}
               publicOnly
+              initialCenter={center ? [center.lat, center.lon] : undefined}
+              initialZoom={center ? 7 : 5}
+              height={520}
             />
-            <div className="absolute left-3 top-3 rounded border border-border bg-card/80 px-2.5 py-1.5 text-[10px] backdrop-blur">
+            <div className="pointer-events-none absolute left-3 top-3 z-[402] rounded border border-border bg-card/80 px-2.5 py-1.5 text-[10px] backdrop-blur">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <span className="inline-block h-2 w-2 rounded-full bg-orange-500" /> Reported by news outlets
               </div>
@@ -169,8 +172,7 @@ export default function HomePage() {
                 <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" /> Crews on scene
               </div>
               <div className="mt-1 flex items-center gap-2 text-muted-foreground">
-                <span className="inline-block h-2 w-2 animate-flicker rounded-full bg-orange-500" /> Embers
-                drift along live wind
+                <span className="inline-block h-2 w-2 animate-flicker rounded-full bg-orange-500" /> Embers drift live wind × fuel
               </div>
             </div>
           </div>

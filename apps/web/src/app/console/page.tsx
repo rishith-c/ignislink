@@ -31,7 +31,7 @@ import {
   type VerificationStatus,
 } from "@/lib/fixtures";
 import { cn } from "@/lib/utils";
-import { IgnisMap } from "@/components/map/IgnisMap";
+import { LeafletMap } from "@/components/map/MapContainer";
 
 // Render the static ageMinutes from the fixture rather than recomputing
 // against Date.now(), so server and client render the same string and we
@@ -188,20 +188,21 @@ function MapPanel({
   onSelect: (id: string) => void;
 }) {
   return (
-    <section className="relative flex items-center justify-center overflow-hidden bg-zinc-950 p-4" aria-label="Live map">
-      <IgnisMap
-        className="relative w-full overflow-hidden rounded-lg border border-border bg-zinc-950"
-        hotspots={incidents.map((i) => ({
+    <section className="relative overflow-hidden bg-zinc-950" aria-label="Live map">
+      <LeafletMap
+        incidents={incidents.map((i) => ({
           id: i.id,
+          shortId: i.shortId,
           lat: i.lat,
           lon: i.lon,
           status: i.verification,
           windDirDeg: i.windDirDeg,
           windSpeedMs: i.windSpeedMs,
-          shortId: i.shortId,
           selected: i.id === selectedId,
         }))}
-        onHotspotClick={onSelect}
+        onIncidentClick={onSelect}
+        height="100%"
+        className="absolute inset-0 h-full w-full"
       />
 
       <div className="absolute left-4 top-4 rounded-md border border-border bg-card/80 p-3 backdrop-blur">

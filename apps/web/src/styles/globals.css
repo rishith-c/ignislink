@@ -105,3 +105,31 @@
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
+
+/* Map marker pulse used by Leaflet divIcon. */
+@keyframes ignis-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* Leaflet container background — match the dark theme. */
+.leaflet-container {
+  background: rgb(8, 8, 10);
+  font-family: var(--font-sans);
+}
+.leaflet-control-attribution {
+  background: rgba(0, 0, 0, 0.6) !important;
+  color: rgb(161 161 170) !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a {
+  color: rgb(212 212 216) !important;
+}
+.leaflet-control-zoom a {
+  background: rgb(24 24 27) !important;
+  color: rgb(228 228 231) !important;
+  border-color: rgb(63 63 70) !important;
+}
+.leaflet-control-zoom a:hover {
+  background: rgb(39 39 42) !important;
+}
