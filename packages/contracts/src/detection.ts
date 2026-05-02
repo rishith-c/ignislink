@@ -2,7 +2,7 @@
 // PRD §0 (glossary), §3 / F1 (ingest + dedup), §4.1 (console queue).
 
 import { z } from "zod";
-import { PointSchema } from "./geometry";
+import { PointSchema } from "./geometry.js";
 
 export const FirmsConfidenceSchema = z.enum(["low", "nominal", "high"]);
 export type FirmsConfidence = z.infer<typeof FirmsConfidenceSchema>;

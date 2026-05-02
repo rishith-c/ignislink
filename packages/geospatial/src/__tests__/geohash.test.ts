@@ -3,8 +3,8 @@ import { geohashEncode } from "../geohash.js";
 
 describe("geohashEncode", () => {
   it("matches a well-known reference value (San Francisco at precision 7)", () => {
-    // SF City Hall: -122.4194, 37.7793 → 9q8yyk8
-    expect(geohashEncode(-122.4194, 37.7793, 7)).toBe("9q8yyk8");
+    // SF City Hall: -122.4194, 37.7793 -> 9q8yym8
+    expect(geohashEncode(-122.4194, 37.7793, 7)).toBe("9q8yym8");
   });
 
   it("respects precision", () => {

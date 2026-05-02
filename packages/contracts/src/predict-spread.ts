@@ -4,7 +4,7 @@
 // Owners: claude (model side) + codex (route side). Lock-required edits.
 
 import { z } from "zod";
-import { PointSchema, MultiPolygonSchema } from "./geometry";
+import { PointSchema, MultiPolygonSchema } from "./geometry.js";
 
 export const SCHEMA_VERSION = 1 as const;
 
@@ -82,9 +82,6 @@ export function deriveInputHashInputs(req: PredictSpreadRequest, modelVersion: s
   return [req.detection_id, modelVersion, req.wind_summary.sample_at, req.context_raster_key];
 }
 
-export function deriveInputHashCanonical(
-  req: PredictSpreadRequest,
-  modelVersion: string,
-): string {
+export function deriveInputHashCanonical(req: PredictSpreadRequest, modelVersion: string): string {
   return deriveInputHashInputs(req, modelVersion).join(CACHE_KEY_DELIMITER);
 }

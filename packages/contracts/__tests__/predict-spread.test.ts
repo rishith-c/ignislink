@@ -6,7 +6,7 @@ import {
   PredictSpreadResponseSchema,
   deriveInputHashCanonical,
   SCHEMA_VERSION,
-} from "../src/predict-spread";
+} from "../src/predict-spread.js";
 
 describe("PredictSpreadRequest", () => {
   it("accepts a minimal valid request", () => {

@@ -11,8 +11,8 @@ import {
   IncidentPublicEventSchema,
   toPublicEvent,
   type IncidentInternalEvent,
-} from "../src/incident-events";
-import type { VerificationStatus } from "../src/verification";
+} from "../src/incident-events.js";
+import type { VerificationStatus } from "../src/verification.js";
 
 const baseInternal: IncidentInternalEvent = IncidentInternalEventSchema.parse({
   schema_version: 1,
@@ -161,12 +161,14 @@ describe("toPublicEvent — redaction contract (PRD §4.5)", () => {
     const pub = toPublicEvent(
       {
         ...baseInternal,
-        predicted_horizons: baseInternal.predicted_horizons.filter(
-          (h) => h.horizon_min !== 360,
-        ),
+        predicted_horizons: baseInternal.predicted_horizons.filter((h) => h.horizon_min !== 360),
       },
       "9q8yyy",
     );
     expect(pub).toBeNull();
+  });
+
+  it("rejects invalid caller-provided geohash values", () => {
+    expect(() => toPublicEvent(baseInternal, "not-valid")).toThrow();
   });
 });

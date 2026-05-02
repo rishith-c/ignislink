@@ -10,9 +10,9 @@
 //   - Contract tests in __tests__/ are TDD-mandatory and run in CI on every PR
 //     touching packages/contracts/**.
 
-export * from "./detection";
-export * from "./predict-spread";
-export * from "./incident-events";
-export * from "./verification";
-export * from "./dispatch";
-export * from "./geometry";
+export * from "./detection.js";
+export * from "./predict-spread.js";
+export * from "./incident-events.js";
+export * from "./verification.js";
+export * from "./dispatch.js";
+export * from "./geometry.js";
