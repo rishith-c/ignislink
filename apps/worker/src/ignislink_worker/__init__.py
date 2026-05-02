@@ -1,0 +1,1 @@
+"""IgnisLink Celery worker package."""
