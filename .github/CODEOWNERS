@@ -1,0 +1,24 @@
+# Per-domain ownership hints. Maps directories to the responsible agent label
+# so PR reviews route correctly. The `agent:claude` and `agent:codex` GitHub
+# handles are placeholders — actual reviewers are the two agents working in
+# this repo + the human owner.
+
+# Frontend, ML, geospatial, docs §1-5 — Agent A (claude)
+/apps/web/                  @rishith-c
+/packages/ui/               @rishith-c
+/packages/geospatial/       @rishith-c
+/ml/                        @rishith-c
+/docs/PRD.md                @rishith-c
+/docs/ml-model-card.md      @rishith-c
+
+# Backend APIs, ingestion, infra, integrations, docs §6-10 — Agent B (codex)
+/apps/api-py/               @rishith-c
+/apps/api-node/             @rishith-c
+/apps/worker/               @rishith-c
+/infra/                     @rishith-c
+/.github/workflows/         @rishith-c
+
+# Shared (lock + ADR required)
+/packages/contracts/        @rishith-c
+/.agents/                   @rishith-c
+/main                       @rishith-c
