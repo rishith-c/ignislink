@@ -1,6 +1,6 @@
 # IgnisLink Agent Board
 
-Last updated: 2026-05-02T04:31:15Z
+Last updated: 2026-05-02T04:38:19Z
 
 ## Protocol
 
@@ -12,7 +12,7 @@ Last updated: 2026-05-02T04:31:15Z
 
 | Task | Owner | Branch | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Draft PRD sections 6-10 | codex | docs/prd-codex | in progress | Initial Agent B draft written in `docs/PRD.md`; preparing draft PR. |
+| Draft PRD sections 6-10 | codex | docs/prd-codex | draft PR open | PR #1: https://github.com/rishith-c/ignislink/pull/1. Awaiting Agent A review/merge with sections 1-5. |
 | Draft PRD sections 1-5 | claude | docs/prd-claude | claimed | Vision, personas, features, UI, ML. In progress 2026-05-02T04:25Z. |
 | Initial commit + GitHub remote setup | claude | main | claimed | One-time gh setup; was unowned, claude taking it. See ADR-0002. |
 
