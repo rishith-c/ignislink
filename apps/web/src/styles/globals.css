@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light theme — fallback only; dark is the default for the dispatcher console. */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 24 95% 53%;            /* fire orange */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 24 95% 53%;
+    --radius: 0.5rem;
+
+    /* Verification badge colors. */
+    --verification-unreported: 240 5% 65%;
+    --verification-emerging: 24 95% 53%;
+    --verification-crews: 142 71% 45%;
+    --verification-prescribed: 217 91% 60%;
+    --verification-industrial: 270 50% 60%;
+
+    /* Fire-prediction bands. */
+    --fire-ember: 30 100% 50%;
+    --fire-flame: 12 100% 55%;
+    --fire-smoke: 220 10% 40%;
+    --fire-char: 0 0% 12%;
+  }
+
+  .dark {
+    /* Default dark theme — designed for 24/7 dispatch consoles. */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 8% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 24 95% 60%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 72.2% 50.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 24 95% 60%;
+
+    --verification-unreported: 240 5% 50%;
+    --verification-emerging: 24 95% 60%;
+    --verification-crews: 142 71% 50%;
+    --verification-prescribed: 217 91% 65%;
+    --verification-industrial: 270 50% 65%;
+
+    --fire-ember: 30 100% 60%;
+    --fire-flame: 12 100% 65%;
+    --fire-smoke: 220 10% 60%;
+    --fire-char: 0 0% 8%;
+  }
+
+  /* Midnight-shift palette — even-darker variant for low-ambient dispatch. */
+  .midnight {
+    --background: 240 12% 2%;
+    --card: 240 10% 4%;
+    --foreground: 0 0% 92%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  /* Always-visible focus ring for keyboard nav (WCAG AA). */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
