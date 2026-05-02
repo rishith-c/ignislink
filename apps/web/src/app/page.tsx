@@ -5,7 +5,17 @@ import Link from "next/link";
 import { Flame, Search, MapPin, Wind, AlertCircle, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { FIXTURE_INCIDENTS, type FixtureIncident } from "@/lib/fixtures";
-import { cn, formatRelativeTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+
+// Use the static ageMinutes from the fixture to avoid hydration drift —
+// otherwise server SSRs at T and client hydrates at T+Δ, producing different
+// "Xm ago" strings.
+function formatAge(mins: number): string {
+  if (mins < 60) return `${mins}m ago`;
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
 
 // Public Awareness Map — read-only civilian view per PRD §4.2.
 // Shows ONLY EMERGING + CREWS_ACTIVE (UNREPORTED, KNOWN_PRESCRIBED, LIKELY_INDUSTRIAL
@@ -235,7 +245,7 @@ export default function HomePage() {
           <span>
             Data sources: NASA FIRMS · NOAA HRRR · USGS LANDFIRE · Open-Meteo · Mapbox
           </span>
-          <span>v0 · last updated {formatRelativeTime(new Date(Date.now() - 1000 * 60).toISOString())}</span>
+          <span suppressHydrationWarning>v0 · feed live · 1m ago</span>
         </div>
       </footer>
     </main>
@@ -272,7 +282,7 @@ function PublicIncidentCard({
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
-          <Clock className="h-3 w-3" /> {formatRelativeTime(incident.observedAt.toISOString())}
+          <Clock className="h-3 w-3" /> {formatAge(incident.ageMinutes)}
         </span>
         <span className="inline-flex items-center gap-1">
           <Wind className="h-3 w-3" /> {incident.windSpeedMs.toFixed(1)} m/s @{" "}

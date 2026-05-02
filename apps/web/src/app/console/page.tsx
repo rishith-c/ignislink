@@ -30,7 +30,17 @@ import {
   type FixtureIncident,
   type VerificationStatus,
 } from "@/lib/fixtures";
-import { cn, formatRelativeTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+
+// Render the static ageMinutes from the fixture rather than recomputing
+// against Date.now(), so server and client render the same string and we
+// don't trip a hydration mismatch.
+function formatAge(mins: number): string {
+  if (mins < 60) return `${mins}m ago`;
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
 
 const CONUS = { minLon: -125, maxLon: -66, minLat: 24, maxLat: 50 };
 
@@ -348,7 +358,7 @@ function Queue({
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1">
-                <Clock className="h-3 w-3" /> {formatRelativeTime(i.observedAt.toISOString())}
+                <Clock className="h-3 w-3" /> {formatAge(i.ageMinutes)}
               </span>
               <span className="inline-flex items-center gap-1">
                 <Wind className="h-3 w-3" /> {i.windSpeedMs.toFixed(1)} m/s @ {Math.round(i.windDirDeg)}°
@@ -397,7 +407,7 @@ function DetailSheet({ incident, onClose }: { incident: FixtureIncident; onClose
           <div className="font-mono text-sm font-semibold">{incident.shortId}</div>
           <div className="mt-0.5 text-xs text-muted-foreground">
             {incident.neighborhood}, {incident.county} {incident.state} ·{" "}
-            {formatRelativeTime(incident.observedAt.toISOString())}
+            {formatAge(incident.ageMinutes)}
           </div>
         </div>
         <div className="flex items-center gap-2">
