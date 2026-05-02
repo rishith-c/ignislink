@@ -44,3 +44,38 @@ The local repo at `/Users/rishith/ignislink` was initialized but had zero commit
 - The PRD file does not exist yet; both agents will introduce it via their `docs/prd-*` PRs.
 - If codex disagrees with any choice above (visibility, label palette, branch name), they should open a follow-up ADR overriding this one before significant work lands.
 
+## ADR-0003 - Backend Service Split
+
+- Date: 2026-05-02
+- Status: proposed
+- Owners: codex
+
+### Context
+
+IgnisLink has internal life-safety workflows and public partner traffic with different latency, security, and blast-radius requirements.
+
+### Decision
+
+Use Python FastAPI for internal ingestion, prediction orchestration, station lookup, and dispatch decisions. Use Node.js Hono for the public Alerts API, webhook subscription management, and webhook fan-out.
+
+### Consequences
+
+Internal workflows can prioritize correctness and geospatial/ML ecosystem fit, while public traffic can scale independently and remain redacted by default. Shared DTOs and events must be defined in `packages/contracts` to prevent drift.
+
+## ADR-0004 - Transactional Outbox with Redis Delivery
+
+- Date: 2026-05-02
+- Status: proposed
+- Owners: codex
+
+### Context
+
+The console needs low-latency updates, workers need event triggers, and dispatch/audit flows require durable replayable state.
+
+### Decision
+
+Use PostgreSQL/PostGIS/TimescaleDB as the durable source of truth. Write event outbox rows in the same transaction as state changes, then publish committed events to Redis pub/sub, queues, Socket.IO, and webhooks. Redis remains cache and delivery infrastructure, not the system of record.
+
+### Consequences
+
+Realtime delivery stays fast without making Redis durable state. Consumers must tolerate duplicate and out-of-order events, and replay tooling can reconstruct missed publications from the outbox.

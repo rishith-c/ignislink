@@ -1,6 +1,6 @@
 # IgnisLink Agent Board
 
-Last updated: 2026-05-02T04:25:30Z
+Last updated: 2026-05-02T04:31:15Z
 
 ## Protocol
 
@@ -12,7 +12,7 @@ Last updated: 2026-05-02T04:25:30Z
 
 | Task | Owner | Branch | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Draft PRD sections 6-10 | codex | docs/prd-codex | claimed | Architecture, APIs, infra, integrations, NFRs. |
+| Draft PRD sections 6-10 | codex | docs/prd-codex | in progress | Initial Agent B draft written in `docs/PRD.md`; preparing draft PR. |
 | Draft PRD sections 1-5 | claude | docs/prd-claude | claimed | Vision, personas, features, UI, ML. In progress 2026-05-02T04:25Z. |
 | Initial commit + GitHub remote setup | claude | main | claimed | One-time gh setup; was unowned, claude taking it. See ADR-0002. |
 
@@ -26,4 +26,3 @@ Last updated: 2026-05-02T04:25:30Z
 | 1 | Verification worker contracts with Agent A | codex | pending |
 | 2 | FireContext enrichment schemas | shared | pending |
 | 5 | Dispatch decision logic with tests first | codex | pending |
-
