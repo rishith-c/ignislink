@@ -21,17 +21,17 @@ Three product surfaces:
 See [`docs/PRD.md`](docs/PRD.md) once it lands. High level:
 
 ```
-apps/web         Next.js 15 console + public map (Agent A)
-apps/api-py      FastAPI ingestion, ML serving, dispatch (Agent B)
-apps/api-node    Hono public alerts API + webhook fan-out (Agent B)
-apps/worker      BullMQ + Celery workers (Agent B)
-packages/ui      Shared shadcn/ui components (Agent A)
-packages/geospatial  TS geo utilities (Agent A)
-packages/contracts   Shared TS types + zod schemas (shared, lock required)
-ml/              Training pipeline, models, notebooks (Agent A)
-infra/           Docker Compose, Terraform, GitHub Actions (Agent B)
-docs/            PRD, architecture, model card, runbook
-.agents/         Dual-agent coordination (BOARD, HANDOFF, DECISIONS, BLOCKERS, LOCK)
+apps/web              Next.js 15 console + public map (Agent A)
+apps/api-py           FastAPI ingestion, ML serving, dispatch (Agent B)
+apps/api-node         Hono public alerts API + webhook fan-out (Agent B)
+apps/worker           BullMQ + Celery workers (Agent B)
+packages/ui           Shared shadcn/ui components (Agent A)
+packages/geospatial   TS geo utilities (Agent A)
+packages/contracts    Shared TS types + zod schemas (shared, lock required)
+ml/                   Training pipeline, models, notebooks (Agent A)
+infra/                Docker Compose, Terraform, GitHub Actions (Agent B)
+docs/                 PRD, architecture, model card, runbook
+.agents/              Dual-agent coordination (BOARD, HANDOFF, DECISIONS, BLOCKERS, LOCK)
 ```
 
 ## Dual-Agent Coordination

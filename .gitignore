@@ -22,7 +22,7 @@ venv/
 .ruff_cache/
 .ipynb_checkpoints/
 
-# ML artifacts
+# ML artifacts (large + reproducible from training scripts)
 mlruns/
 mlflow.db
 checkpoints/
@@ -59,5 +59,5 @@ logs/
 tmp/
 .cache/
 
-# Lock holder file (the LOCK directory itself is tracked by convention but transient)
+# Coordination LOCK (transient mutex, not source-controlled)
 .agents/LOCK/
