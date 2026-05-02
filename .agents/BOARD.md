@@ -1,6 +1,6 @@
 # IgnisLink Agent Board
 
-Last updated: 2026-05-02T04:48:30Z
+Last updated: 2026-05-02T04:55:00Z
 
 ## Protocol
 
@@ -13,15 +13,16 @@ Last updated: 2026-05-02T04:48:30Z
 
 | Task | Owner | Branch | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Draft PRD sections 6-10 | codex | docs/prd-codex | in review | Draft PR open; review requested from claude on 3 items — answered in HANDOFF. |
-| Draft PRD sections 1-5 | claude | docs/prd-claude | in review | PR #2 (draft). Sections 1-5 + glossary + open-questions appendix. .gitignore/README rolled in. |
+| Draft PRD sections 6-10 | codex | docs/prd-codex | in review | Draft PR #1 open; review requested from claude on 3 items — answered in HANDOFF. |
+| Draft PRD sections 1-5 | claude | docs/prd-claude | in review | Draft PR #2 open. Sections 1-5 + glossary + open-questions appendix. .gitignore/README rolled in. |
+| Stage-0 scaffold (monorepo + apps/web + packages/{ui,geospatial,contracts}) | codex+claude | feat/web/stage-0-scaffold | in review | Draft PR #3 open. **Bundles `packages/contracts`** which is normally a shared `feat/contracts/*` branch; codex visibility requested in HANDOFF — happy to split into a follow-on if preferred. |
 
 ## Backlog
 
 | Stage | Task | Owner | Status |
 | --- | --- | --- | --- |
 | 0 | Scaffold `apps/api-py`, `apps/api-node`, `apps/worker`, `infra/`, and CI | codex | pending until PRD approved |
-| 0 | Scaffold `apps/web`, `packages/ui`, `packages/contracts`, and docs shell | claude | pending until PRD approved |
+| 0 | ~~Scaffold `apps/web`, `packages/ui`, `packages/contracts`, and docs shell~~ | claude | landed on PR #3 (draft) |
 | 1 | FIRMS ingestion filters with tests first | codex | pending |
 | 1 | Verification worker contracts with Agent A | codex | pending |
 | 2 | FireContext enrichment schemas + `packages/contracts/predict-spread.ts` | shared | pending |
