@@ -228,34 +228,40 @@ class FireSpreadUNetConvLSTM(nn.Module):
         # After projecting fuel through the embedding we re-concat → 13 + 8 = 21.
         encoder_in = (in_channels - 1) + fuel_embed_dim
 
-        c1, c2, c3, c4 = (
-            base_channels,
-            base_channels * 2,
-            base_channels * 4,
-            base_channels * 8,
-        )
+        c1 = base_channels
+        c2 = base_channels * 2
+        c3 = base_channels * 4
+        c4 = base_channels * 8
+        c5 = base_channels * 8  # cap channel growth at 8× to control param count
 
-        # Encoder: 4 stages, each a ConvBlock; downsample between stages.
+        # Encoder: 4 down stages + entry block. Each Down halves the spatial
+        # dims; together with the entry block this produces 4 spatial scales.
         self.enc1 = ConvBlock(encoder_in, c1)
         self.down1 = Down(c1, c2)
         self.down2 = Down(c2, c3)
         self.down3 = Down(c3, c4)
+        self.down4 = Down(c4, c5)
 
         # Bottleneck — ConvLSTM operating over T past timesteps.
         self.bottleneck_proj_in = (
-            nn.Conv2d(c4, bottleneck_hidden, kernel_size=1) if c4 != bottleneck_hidden else nn.Identity()
+            nn.Conv2d(c5, bottleneck_hidden, kernel_size=1)
+            if c5 != bottleneck_hidden
+            else nn.Identity()
         )
         self.bottleneck_proj_out = (
-            nn.Conv2d(bottleneck_hidden, c4, kernel_size=1) if c4 != bottleneck_hidden else nn.Identity()
+            nn.Conv2d(bottleneck_hidden, c5, kernel_size=1)
+            if c5 != bottleneck_hidden
+            else nn.Identity()
         )
         self.lstm = ConvLSTMCell(bottleneck_hidden, bottleneck_hidden, kernel=3)
 
-        # Decoder
+        # Decoder mirrors encoder.
+        self.up4 = Up(c5, c4, c4)
         self.up3 = Up(c4, c3, c3)
         self.up2 = Up(c3, c2, c2)
         self.up1 = Up(c2, c1, c1)
 
-        # Head: 1×1 conv to per-horizon channels
+        # Head: 1×1 conv to per-horizon channels.
         self.head = nn.Conv2d(c1, horizons, kernel_size=1)
 
     def _split_and_embed_fuel(self, x: torch.Tensor) -> torch.Tensor:
@@ -292,7 +298,7 @@ class FireSpreadUNetConvLSTM(nn.Module):
                 f"expected {self.in_channels} input channels, got {c}"
             )
 
-        skip_e1 = skip_e2 = skip_e3 = None
+        skip_e1 = skip_e2 = skip_e3 = skip_e4 = None
         h_state = c_state = None
 
         for ti in range(t):
@@ -301,20 +307,25 @@ class FireSpreadUNetConvLSTM(nn.Module):
             e2 = self.down1(e1)
             e3 = self.down2(e2)
             e4 = self.down3(e3)
+            e5 = self.down4(e4)
 
-            bottleneck_in = self.bottleneck_proj_in(e4)
+            bottleneck_in = self.bottleneck_proj_in(e5)
             if h_state is None:
                 h_state, c_state = self.lstm.init_state(
-                    b, bottleneck_in.shape[-2], bottleneck_in.shape[-1],
-                    bottleneck_in.device, bottleneck_in.dtype,
+                    b,
+                    bottleneck_in.shape[-2],
+                    bottleneck_in.shape[-1],
+                    bottleneck_in.device,
+                    bottleneck_in.dtype,
                 )
             h_state, c_state = self.lstm(bottleneck_in, (h_state, c_state))
-            skip_e1, skip_e2, skip_e3 = e1, e2, e3
+            skip_e1, skip_e2, skip_e3, skip_e4 = e1, e2, e3, e4
 
-        assert skip_e1 is not None and skip_e2 is not None and skip_e3 is not None
+        assert skip_e1 is not None and skip_e2 is not None and skip_e3 is not None and skip_e4 is not None
         bottleneck_out = self.bottleneck_proj_out(h_state)
 
-        d3 = self.up3(bottleneck_out, skip_e3)
+        d4 = self.up4(bottleneck_out, skip_e4)
+        d3 = self.up3(d4, skip_e3)
         d2 = self.up2(d3, skip_e2)
         d1 = self.up1(d2, skip_e1)
         return torch.sigmoid(self.head(d1))
