@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Flame, Search, MapPin, Wind, AlertCircle, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { FIXTURE_INCIDENTS, type FixtureIncident } from "@/lib/fixtures";
+import { IgnisMap } from "@/components/map/IgnisMap";
 import { cn } from "@/lib/utils";
 
 // Use the static ageMinutes from the fixture to avoid hydration drift —
@@ -147,69 +148,29 @@ export default function HomePage() {
             </button>
           </form>
 
-          <div className="relative overflow-hidden rounded-lg border border-border bg-zinc-950">
-            <svg
-              viewBox="0 0 100 100"
-              preserveAspectRatio="xMidYMid meet"
-              className="h-[420px] w-full"
-            >
-              <defs>
-                <pattern id="grid-public" width="5" height="5" patternUnits="userSpaceOnUse">
-                  <path d="M 5 0 L 0 0 0 5" fill="none" stroke="rgb(39 39 42)" strokeWidth="0.1" />
-                </pattern>
-                <radialGradient id="hotglow-pub" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#f97316" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
-                </radialGradient>
-              </defs>
-              <rect width="100" height="100" fill="url(#grid-public)" />
-              <path
-                d="M 5 78 L 8 65 L 12 60 L 14 50 L 11 42 L 14 32 L 18 28 L 24 22 L 32 20 L 40 22 L 50 25 L 60 30 L 68 32 L 75 33 L 82 35 L 88 38 L 92 45 L 95 55 L 95 70 L 90 80 L 80 85 L 65 82 L 50 80 L 35 82 L 22 80 L 10 80 Z"
-                fill="rgb(24 24 27)"
-                stroke="rgb(63 63 70)"
-                strokeWidth="0.18"
-              />
-              {center &&
-                (() => {
-                  const { x, y } = project(center.lat, center.lon);
-                  return (
-                    <g>
-                      <circle cx={x} cy={y} r={3.2} fill="rgba(56,189,248,0.15)" stroke="#38bdf8" strokeWidth="0.3" />
-                      <circle cx={x} cy={y} r={0.8} fill="#38bdf8" />
-                      <text x={x + 1.6} y={y - 1.3} fontSize="1.6" fill="#38bdf8">
-                        {center.label}
-                      </text>
-                    </g>
-                  );
-                })()}
-              {PUBLIC_INCIDENTS.map((i) => {
-                const { x, y } = project(i.lat, i.lon);
-                const color = i.verification === "EMERGING" ? "#f97316" : "#10b981";
-                return (
-                  <g key={i.id}>
-                    <circle cx={x} cy={y} r={3.5} fill="url(#hotglow-pub)" />
-                    <circle cx={x} cy={y} r={1.0} fill={color} stroke="white" strokeWidth="0.2">
-                      {i.verification === "EMERGING" && (
-                        <animate
-                          attributeName="opacity"
-                          values="1;0.55;1"
-                          dur="1.6s"
-                          repeatCount="indefinite"
-                        />
-                      )}
-                    </circle>
-                  </g>
-                );
-              })}
-            </svg>
-
+          <div className="relative">
+            <IgnisMap
+              hotspots={PUBLIC_INCIDENTS.map((i) => ({
+                id: i.id,
+                lat: i.lat,
+                lon: i.lon,
+                status: i.verification,
+                windDirDeg: i.windDirDeg,
+                windSpeedMs: i.windSpeedMs,
+                shortId: i.shortId,
+              }))}
+              publicOnly
+            />
             <div className="absolute left-3 top-3 rounded border border-border bg-card/80 px-2.5 py-1.5 text-[10px] backdrop-blur">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <span className="inline-block h-2 w-2 rounded-full bg-orange-500" /> Reported by news
-                outlets
+                <span className="inline-block h-2 w-2 rounded-full bg-orange-500" /> Reported by news outlets
               </div>
               <div className="mt-1 flex items-center gap-2 text-muted-foreground">
                 <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" /> Crews on scene
+              </div>
+              <div className="mt-1 flex items-center gap-2 text-muted-foreground">
+                <span className="inline-block h-2 w-2 animate-flicker rounded-full bg-orange-500" /> Embers
+                drift along live wind
               </div>
             </div>
           </div>

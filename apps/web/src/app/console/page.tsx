@@ -31,6 +31,7 @@ import {
   type VerificationStatus,
 } from "@/lib/fixtures";
 import { cn } from "@/lib/utils";
+import { IgnisMap } from "@/components/map/IgnisMap";
 
 // Render the static ageMinutes from the fixture rather than recomputing
 // against Date.now(), so server and client render the same string and we
@@ -187,61 +188,21 @@ function MapPanel({
   onSelect: (id: string) => void;
 }) {
   return (
-    <section className="relative overflow-hidden bg-zinc-950" aria-label="Live map">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" className="absolute inset-0 h-full w-full">
-        <defs>
-          <pattern id="grid" width="5" height="5" patternUnits="userSpaceOnUse">
-            <path d="M 5 0 L 0 0 0 5" fill="none" stroke="rgb(39 39 42)" strokeWidth="0.1" />
-          </pattern>
-          <radialGradient id="hotglow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#f97316" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="emberglow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <rect width="100" height="100" fill="url(#grid)" />
-        <path
-          d="M 5 78 L 8 65 L 12 60 L 14 50 L 11 42 L 14 32 L 18 28 L 24 22 L 32 20 L 40 22 L 50 25 L 60 30 L 68 32 L 75 33 L 82 35 L 88 38 L 92 45 L 95 55 L 95 70 L 90 80 L 80 85 L 65 82 L 50 80 L 35 82 L 22 80 L 10 80 Z"
-          fill="rgb(24 24 27)"
-          stroke="rgb(63 63 70)"
-          strokeWidth="0.18"
-        />
-        {incidents.map((i) => {
-          const { x, y } = project(i.lat, i.lon);
-          const color = hotspotColor(i.verification);
-          const isSelected = i.id === selectedId;
-          return (
-            <g key={i.id} onClick={() => onSelect(i.id)} className="cursor-pointer">
-              {i.verification === "EMERGING" && (
-                <circle cx={x} cy={y} r={isSelected ? 5.5 : 3.5} fill="url(#hotglow)" />
-              )}
-              {i.verification === "CREWS_ACTIVE" && (
-                <circle cx={x} cy={y} r={isSelected ? 5.5 : 3.5} fill="url(#emberglow)" />
-              )}
-              <circle
-                cx={x}
-                cy={y}
-                r={isSelected ? 1.6 : 1.0}
-                fill={color}
-                stroke={isSelected ? "white" : "rgba(255,255,255,0.6)"}
-                strokeWidth={isSelected ? 0.4 : 0.2}
-              >
-                {(i.verification === "EMERGING" || i.verification === "UNREPORTED") && (
-                  <animate attributeName="opacity" values="1;0.55;1" dur="1.6s" repeatCount="indefinite" />
-                )}
-              </circle>
-              {isSelected && (
-                <text x={x + 2.2} y={y - 1.6} fontSize="1.6" fill="white" className="font-mono">
-                  {i.shortId}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
+    <section className="relative flex items-center justify-center overflow-hidden bg-zinc-950 p-4" aria-label="Live map">
+      <IgnisMap
+        className="relative w-full overflow-hidden rounded-lg border border-border bg-zinc-950"
+        hotspots={incidents.map((i) => ({
+          id: i.id,
+          lat: i.lat,
+          lon: i.lon,
+          status: i.verification,
+          windDirDeg: i.windDirDeg,
+          windSpeedMs: i.windSpeedMs,
+          shortId: i.shortId,
+          selected: i.id === selectedId,
+        }))}
+        onHotspotClick={onSelect}
+      />
 
       <div className="absolute left-4 top-4 rounded-md border border-border bg-card/80 p-3 backdrop-blur">
         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Layers</div>
