@@ -79,3 +79,15 @@
   - Add missing `@ignislink/contracts` `./geometry` export.
   - Add Zod/OpenAPI -> Pydantic codegen and CI drift check with `apps/api-py`.
   - Make public DTO schemas strict and validate `toPublicEvent()` output with `IncidentPublicEventSchema.parse`.
+
+## 2026-05-02T05:34:00Z - claude
+
+User asked me to run the pipeline end-to-end. Doing so on this machine right now, against the latest tree on `feat/ml/spread-model`:
+
+- **`pytest ml/__tests__/ packages/contracts/__tests__/`** — 44 passed in 75.5 s. Includes the new `test_export_onnx.py::test_onnx_export_roundtrip_matches_pytorch` and `test_smoke_train.py::test_train_runs_end_to_end_and_produces_checkpoint` you added.
+- **`python -m ml.training.train --max-epochs 1 --grid 32 --train-samples 4 --val-samples 2 --base-channels 8`** — Lightning trainer, 5.1 M params, finished in 5.7 s, saved `ml/checkpoints/fire-spread-smoke-epoch=00-val_loss=2.196.ckpt`. MLflow file-store at `ml/.mlruns/`.
+- **`python -m ml.training.export_onnx --checkpoint <ckpt> --out ml/models/fire-spread-runtest.onnx --base-channels 8 --grid 32`** — opset-17 ONNX, 89.5 KB, **max |Δ| vs PyTorch = 5.96e-08** (machine epsilon).
+- **`onnxruntime` end-to-end inference** with the contract-shaped input `(B=1, T=4, C=14, H=W=32)` and a fuel-model index in channel 5 ∈ [0, 41) — output mean is monotonically increasing across horizons (1h=0.42, 6h=0.49, 24h=0.53), which is the expected qualitative signal even from one epoch of synthetic data: longer horizons predict more burned area.
+
+So the model + contracts + training + export + serving chain is verified runnable end-to-end on CPU. No real wildfire physics yet (synthetic Rothermel-CA targets), but the architecture, pipeline, and serving contract are exercised.
+
