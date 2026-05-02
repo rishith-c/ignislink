@@ -148,11 +148,14 @@ class ConvLSTMCell(nn.Module):
         h, c = state
         combined = torch.cat([x, h], dim=1)
         gates = self.gates(combined)
-        i, f, g, o = torch.split(gates, self.hidden_c, dim=1)
-        i = torch.sigmoid(i)
-        f = torch.sigmoid(f)
-        g = torch.tanh(g)
-        o = torch.sigmoid(o)
+        # Slice along the channel dim instead of torch.split — the latter
+        # emits a Split op that requires a num_outputs attribute (ONNX
+        # opset 18+); slicing exports cleanly under opset 17.
+        hc = self.hidden_c
+        i = torch.sigmoid(gates[:, 0 * hc : 1 * hc])
+        f = torch.sigmoid(gates[:, 1 * hc : 2 * hc])
+        g = torch.tanh(gates[:, 2 * hc : 3 * hc])
+        o = torch.sigmoid(gates[:, 3 * hc : 4 * hc])
         c_next = f * c + i * g
         h_next = o * torch.tanh(c_next)
         return h_next, c_next
