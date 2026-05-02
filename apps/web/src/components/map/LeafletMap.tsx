@@ -241,21 +241,50 @@ export function LeafletMap({
       canvas.style.height = `${size.y}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    resize();
-    map.on("resize zoomstart movestart", () => {
-      // Wipe particles on viewport change so we don't draw stale positions.
+
+    // Hard-wipe the canvas (not just trail-fade) AND drop in-flight particles.
+    // Required on map move/zoom because trailed pixels are positioned in
+    // container coordinates that no longer match the underlying tiles.
+    function hardClear() {
       particlesRef.current = [];
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+
+    resize();
+    let panning = false;
+    map.on("movestart zoomstart", () => {
+      panning = true;
+      hardClear();
     });
-    map.on("resize", resize);
+    map.on("moveend zoomend", () => {
+      panning = false;
+      hardClear();
+    });
+    map.on("resize", () => {
+      resize();
+      hardClear();
+    });
 
     let spawnAccum = 0;
     const SPAWN_PER_SOURCE = 1.2;
-    const PARTICLE_LIFE = 140;
+    const PARTICLE_LIFE = 110;
 
     function tick() {
-      // Trail fade.
+      // While the user is panning/zooming, don't draw — the canvas stays
+      // fixed in container space while the tiles move underneath. Drawing
+      // during pan would smear particles across the wrong geography.
+      if (panning) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      // Aggressive trail fade so any stragglers disappear within ~30 frames.
       ctx.globalCompositeOperation = "destination-in";
-      ctx.fillStyle = "rgba(0,0,0,0.93)";
+      ctx.fillStyle = "rgba(0,0,0,0.85)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.globalCompositeOperation = "lighter";
 
