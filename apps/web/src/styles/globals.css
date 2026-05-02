@@ -4,6 +4,13 @@
 
 @layer base {
   :root {
+    /* System font stack — no Google Fonts dependency. */
+    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji",
+      "Segoe UI Emoji";
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+
     /* Light theme — fallback only; dark is the default for the dispatcher console. */
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
