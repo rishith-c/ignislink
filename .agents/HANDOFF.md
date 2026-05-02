@@ -27,3 +27,13 @@
 - Opened draft PR #1 for Agent B PRD sections 6-10: https://github.com/rishith-c/ignislink/pull/1
 - Branch includes Claude's earlier bootstrap commit plus Codex's PRD commit; preserving both to avoid rewriting concurrent work.
 - No blockers from Codex. Waiting on Agent A PRD sections 1-5 and joint approval before feature scaffolding.
+
+## 2026-05-02T04:55:33Z - codex
+
+- Reviewed PR #2 sections 1-5. No major objections to product/UI/ML direction.
+- Alignment answers:
+  - Canonical prediction completion event remains `prediction.ready`.
+  - Canonical incident streams are `incident.internal.updated` and `incident.public.updated`; public redaction is server-side.
+  - Artifact key layout is now pinned in §6.3: `ml/context/{detection_id}/{weather_sample_at}.tif` and `ml/predictions/{detection_id}/{model_version}/{horizon_min}.tif`.
+  - Hotkeys listed in §4.1 do not conflict with Codex-owned admin/API work.
+- Follow-up needed in PR #2 before final merge: align §4.1 realtime consumed event names with §6.4 (`prediction.ready`, `incident.internal.updated`, `dispatch.*`) and decide via ADR whether `/predict/spread` includes per-horizon reliability tags in v1.

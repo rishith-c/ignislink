@@ -63,6 +63,14 @@ PostgreSQL 16 with PostGIS and TimescaleDB is the system of record:
 
 Timescale hypertables are used for high-volume detection observations, external-call telemetry, queue events, and delivery attempts. Large rasters and generated maps are stored in S3-compatible object storage and referenced by immutable object keys.
 
+Object key conventions:
+
+- Context rasters: `ml/context/{detection_id}/{weather_sample_at}.tif`.
+- Prediction rasters: `ml/predictions/{detection_id}/{model_version}/{horizon_min}.tif`.
+- Static dispatch maps: `dispatch/maps/{dispatch_id}/{rendered_at}.png`.
+- Camera frames: `camera-frames/{camera_id}/{captured_at}.jpg`.
+- Model artifacts: `models/fire-spread/{model_version}/{artifact_name}`.
+
 ### 6.4 Eventing and Realtime
 
 Redis is used for cache, rate limits, distributed locks, pub/sub, and queue coordination. Redis is not the system of record. Events must be idempotent, sequence-aware, and versioned:
@@ -71,13 +79,15 @@ Redis is used for cache, rate limits, distributed locks, pub/sub, and queue coor
 - `detection.verified`
 - `fire_context.ready`
 - `prediction.ready`
-- `incident.updated`
+- `incident.internal.updated`
+- `incident.public.updated`
+- `dispatch.requested`
 - `dispatch.sent`
 - `dispatch.failed`
 - `dispatch.delivery.updated`
 - `system.integration.degraded`
 
-Socket.IO bridges internal events to the Dispatcher Console. Public clients receive only redacted read-only incident events with no station details, private dispatch payloads, partner secrets, or internal audit metadata. Reconnecting clients use event sequence numbers or a since-token to recover missed updates.
+Socket.IO bridges internal events to the Dispatcher Console. Public clients receive only `incident.public.updated`, a server-redacted event with no station details, private dispatch payloads, partner secrets, internal audit metadata, FIRMS confidence score, or exact hotspot coordinates. Reconnecting clients use event sequence numbers or a since-token to recover missed updates.
 
 ### 6.5 Failure Modes
 
@@ -115,7 +125,7 @@ All internal APIs require short-lived JWTs or service credentials and emit OpenT
 | `POST` | `/detections/ingest/firms/run` | Manual FIRMS poll trigger | Admin only, idempotent by bbox and time window. |
 | `POST` | `/detections/{id}/verify` | Verification trigger | Idempotent, enqueues job, returns current job state. |
 | `POST` | `/detections/{id}/context` | Enrichment trigger | Builds or refreshes `FireContext`. |
-| `POST` | `/predict/spread` | ML spread prediction | Returns horizons at 1h, 6h, 24h with 25/50/75 percent contours and raster reference. |
+| `POST` | `/predict/spread` | ML spread prediction | Returns the §5.5 contract: horizons at 1h, 6h, 24h with 25/50/75 percent contours, raster references, cache state, inference latency, and input hash. |
 | `GET` | `/stations/nearby` | Station search | Requires bbox or radius query; internal only. |
 | `POST` | `/dispatches` | Dispatch decision and delivery | Requires detection id, actor or automation policy, and idempotency key. |
 | `GET` | `/dispatches/{id}/audit` | Dispatch audit read | Internal only; redacts partner secrets. |
@@ -164,6 +174,7 @@ Dispatcher and admin users authenticate through an OIDC/SAML-ready identity prov
 
 - FIRMS ingestion input normalization and confidence filtering.
 - Detection, verification, fire context, prediction, incident, and dispatch event payloads.
+- `POST /predict/spread` request and response payloads in `packages/contracts/predict-spread.ts`.
 - Public alert DTO redaction.
 - Webhook signature envelope.
 - Dispatch payload shape with station ETA candidates and ML contours.
@@ -388,4 +399,3 @@ Each backend or integration feature is done only when:
 - Docs and public API schema are updated.
 - `BOARD.md` is updated, and `HANDOFF.md` contains migration notes for cross-agent changes.
 - Branch is pushed, draft PR is opened, and the PR is marked ready only after local validation.
-
