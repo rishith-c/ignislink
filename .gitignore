@@ -61,3 +61,11 @@ tmp/
 
 # Coordination LOCK (transient mutex, not source-controlled)
 .agents/LOCK/
+
+# Embedded worktree repos (Claude/agent isolation copies)
+.claude/
+
+# Training artifacts (exported models live in registry/object-storage, not git)
+ml/models/*.onnx
+ml/models/*.onnx.data
+ml/checkpoints/
