@@ -1,19 +1,14 @@
 # SENTRY · IgnisLink
 
-Real-time wildfire detection, prediction, and dispatch.
+A real-time wildfire monitoring system that detects fires, predicts their spread, and helps coordinate emergency response.
 
-SENTRY ingests NASA FIRMS satellite thermal anomalies, cross-checks them with
-the Cal Fire active-incidents feed and news/scanner signals, predicts fire
-spread with a custom-trained ML model conditioned on live wind / fuel /
-terrain, visualizes propagation with a canvas particle simulation on a real
-slippy map, scores each fire across 5 threat dimensions, and routes verified
-incidents to the nearest fire station ranked by ETA.
+SENTRY pulls in NASA FIRMS satellite data, cross-checks it against the Cal Fire active-incidents feed and news/scanner signals, then predicts fire spread using a custom-trained ML model that accounts for live wind, fuel, and terrain conditions. It visualizes fire propagation with a canvas particle simulation on a real map, scores each fire across 5 threat dimensions, and routes verified incidents to the nearest fire station ranked by ETA.
 
 Three product surfaces:
 
-- **Dispatcher Console** (`/console`) — primary ops UI for fire departments
-- **Public Awareness Map** (`/`) — civilian situational awareness
-- **Admin** (`/admin`) — bounding-box config, routing, model versions, audit
+- **Dispatcher Console** (`/console`): the primary ops UI for fire departments
+- **Public Awareness Map** (`/`): civilian situational awareness
+- **Admin** (`/admin`): bounding-box config, routing, model versions, audit
 
 ---
 
@@ -57,7 +52,7 @@ pnpm install
 cd ml && pip install -r requirements.txt && cd ..
 ```
 
-`pnpm install` provisions all workspaces in one shot — it covers `apps/web`,
+`pnpm install` provisions all workspaces in one shot: it covers `apps/web`,
 `packages/contracts`, `packages/geospatial`, `packages/ui`.
 
 ---
@@ -71,7 +66,7 @@ cp .env.example .env.local
 cp .env.example apps/web/.env.local   # Next.js looks here for runtime env
 ```
 
-`.env.local` is gitignored — never commit it.
+`.env.local` is gitignored: never commit it.
 
 ### Keys you need to do anything
 
@@ -91,19 +86,19 @@ cp .env.example apps/web/.env.local   # Next.js looks here for runtime env
 | `MODAL_TOKEN_ID` / `SECRET` | Optional GPU compute for ML | https://modal.com |
 | `TWILIO_*` / `RAPIDSOS_*` | Dispatch fan-out (Stage 5) | partner-issued |
 
-Anything you don't set is gracefully no-op'd — the app runs fine on FIRMS
+Anything you don't set is gracefully no-op'd: the app runs fine on FIRMS
 alone.
 
 ### No-key data sources used out of the box
 
 These work without registration:
-- NASA FIRMS — needs the free key above
-- Cal Fire active incidents — `incidents.fire.ca.gov/umbraco/api/IncidentApi/List`
-- NOAA HRRR (when wired in Stage 2) — public NOMADS
-- Open-Meteo (HRRR fallback) — free
-- USGS LANDFIRE — public WMS/WFS
-- ArcGIS Fire Stations — public HIFLD layer
-- CARTO Voyager / Esri WorldImagery / OpenTopoMap basemap tiles — free
+- NASA FIRMS: needs the free key above
+- Cal Fire active incidents: `incidents.fire.ca.gov/umbraco/api/IncidentApi/List`
+- NOAA HRRR (when wired in Stage 2): public NOMADS
+- Open-Meteo (HRRR fallback): free
+- USGS LANDFIRE: public WMS/WFS
+- ArcGIS Fire Stations: public HIFLD layer
+- CARTO Voyager / Esri WorldImagery / OpenTopoMap basemap tiles: free
 
 ---
 
@@ -162,7 +157,7 @@ python -m ml.training.eval --checkpoint ml/checkpoints/last.ckpt
 What the smoke training proves: the U-Net + ConvLSTM architecture
 forward-passes, backprops through the weighted-BCE + Dice + FireFrontIoU
 combined loss, and updates without NaN. **It does not produce a usable
-real-world model** — that requires the FIRMS+HRRR+LANDFIRE archive (~hundreds
+real-world model**: that requires the FIRMS+HRRR+LANDFIRE archive (~hundreds
 of GB) and an A100. See [`docs/ml-model-card.md`](docs/ml-model-card.md) for
 intended use, limitations, and ecoregion coverage.
 
@@ -182,7 +177,7 @@ python -m pytest ml/__tests__ -v
 ```
 
 Critical test: `packages/contracts/__tests__/redaction.test.ts` is the
-public/internal event redaction gate per PRD §4.5 — it must pass on every
+public/internal event redaction gate per PRD §4.5: it must pass on every
 commit that touches `packages/contracts/`.
 
 ---
@@ -192,16 +187,16 @@ commit that touches `packages/contracts/`.
 ```
 ignislink/
 ├── apps/
-│   └── web/                Next.js 15 — console + public map + admin (Agent A)
+│   └── web/                Next.js 15: console + public map + admin (Agent A)
 │       ├── src/app/        App Router routes
 │       ├── src/components/ Map, console, intel-panel components
 │       ├── src/lib/intel/  FIRMS + Cal Fire + threat scoring (server-side)
 │       └── src/lib/        Fixtures, hooks, utils
 ├── packages/
 │   ├── contracts/          Shared zod schemas + TS types (lock required)
-│   ├── geospatial/         TS geo utils — bbox, geohash, wind rose
+│   ├── geospatial/         TS geo utils: bbox, geohash, wind rose
 │   └── ui/                 Shared shadcn primitives + tokens
-├── ml/                     Python ML pipeline — Rothermel + U-Net+ConvLSTM (Agent A)
+├── ml/                     Python ML pipeline: Rothermel + U-Net+ConvLSTM (Agent A)
 │   ├── models/             rothermel.py, unet_convlstm.py
 │   ├── training/           train, eval, dataset, losses, export_onnx
 │   └── __tests__/          pytest suite
@@ -215,7 +210,7 @@ ignislink/
 ```
 
 Backend (`apps/api-py`, `apps/api-node`, `apps/worker`) and infra
-(`infra/`) live on Codex's parallel branch — see PR #18 (`feat/infra/stage-0-backend`).
+(`infra/`) live on Codex's parallel branch: see PR #18 (`feat/infra/stage-0-backend`).
 
 ---
 
@@ -238,7 +233,7 @@ Backend (`apps/api-py`, `apps/api-node`, `apps/worker`) and infra
 awareness map, and admin under one umbrella. The map is **vanilla Leaflet**
 with three free basemap layers (CARTO Dark Voyager, Esri WorldImagery,
 OpenTopoMap) and a custom canvas overlay that runs a wind-driven particle
-simulation in lat/lon space — particles re-project on every frame so they
+simulation in lat/lon space: particles re-project on every frame so they
 move correctly with pan and zoom. ML predicted spread renders as nested
 heel-anchored ellipses (1 h / 6 h / 24 h) oriented along the bearing
 direction. Each incident's intel panel calls a Next.js Route Handler at
@@ -256,42 +251,51 @@ LOW / MODERATE / HIGH / CRITICAL band with rationale strings.
 
 This repo is built concurrently by two AI coding agents:
 
-- **Agent A — Claude Code:** frontend, ML, geospatial, docs §1–5
-- **Agent B — Codex:** backend APIs, ingestion workers, infra, integrations, docs §6–10
+- **Agent A: Claude Code:** frontend, ML, geospatial, docs §1–5
+- **Agent B: Codex:** backend APIs, ingestion workers, infra, integrations, docs §6–10
 
 State flows through `.agents/`:
 
-- [`.agents/BOARD.md`](.agents/BOARD.md) — live task ownership
-- [`.agents/HANDOFF.md`](.agents/HANDOFF.md) — cross-agent messages
-- [`.agents/DECISIONS.md`](.agents/DECISIONS.md) — ADRs
-- [`.agents/BLOCKERS.md`](.agents/BLOCKERS.md) — waiting states
+- [`.agents/BOARD.md`](.agents/BOARD.md): live task ownership
+- [`.agents/HANDOFF.md`](.agents/HANDOFF.md): cross-agent messages
+- [`.agents/DECISIONS.md`](.agents/DECISIONS.md): ADRs
+- [`.agents/BLOCKERS.md`](.agents/BLOCKERS.md): waiting states
 
 ---
 
 ## Troubleshooting
 
-**Web app won't compile** — Turbopack is disabled in the dev script because
+**Web app won't compile**: Turbopack is disabled in the dev script because
 it choked on cross-workspace tsconfig extends. Plain `next dev` is used; if
 you want to force Turbopack: `next dev --turbopack` and remove
 `experimental.typedRoutes` from `next.config.ts`.
 
-**Map shows blank tiles** — your network is blocking CARTO / Esri / OSM. The
+**Map shows blank tiles**: your network is blocking CARTO / Esri / OSM. The
 basemap toggle in the top-right of the map switches between the three
 providers; one of them usually works.
 
-**Hydration mismatch on `/console`** — was caused by `Date.now()` in render;
+**Hydration mismatch on `/console`**: was caused by `Date.now()` in render;
 fixed in commit `4eaf85a`. If you see it again with a browser extension
 (Kapture, etc.), the `<body>` already has `suppressHydrationWarning`.
 
-**`FIRMS_API_KEY not configured` in `/api/intel`** — Next.js looks for
+**`FIRMS_API_KEY not configured` in `/api/intel`**: Next.js looks for
 `apps/web/.env.local`, not the monorepo root. Copy the file:
 ```bash
 cp .env.local apps/web/.env.local
 ```
 Then restart `pnpm dev`.
 
-**ML tests show "no tests ran"** — you're not on the `feat/ml/spread-model`
+**ML tests show "no tests ran"**: you're not on the `feat/ml/spread-model`
 branch. `git checkout feat/ml/spread-model` first.
+
+---
+
+## Screenshots
+
+<!-- Add screenshot: Public Awareness Map showing wildfire incidents on the map -->
+<!-- Add screenshot: Dispatcher Console with threat scoring and intel panel -->
+<!-- Add screenshot: Admin panel with bounding box configuration -->
+<!-- Add screenshot: Particle simulation showing predicted fire spread -->
 
 ---
 
