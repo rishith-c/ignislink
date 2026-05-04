@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────── JS / TS workspaces ───────────────────
+  web:
+    name: web · typecheck + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (web + packages)
+        run: pnpm --filter "@ignislink/*" typecheck
+
+      - name: Vitest (packages — includes the redaction gate)
+        run: pnpm --filter "@ignislink/*" test --if-present
+
+      - name: Build web
+        run: pnpm --filter @ignislink/web build
+
+  # ─────────────────── Python ML pipeline ───────────────────
+  ml:
+    name: ml · pytest
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.pull_request.changed_files, 'ml/') ||
+      github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ml/requirements.txt
+
+      - name: Install ML deps
+        run: |
+          # Install only the lightweight test deps; skip torch/lightning when
+          # the smoke-train test is marked slow. CPU-only torch is huge — we
+          # let pytest's @skipif gate skip GPU/integration paths.
+          pip install --upgrade pip
+          pip install -r ml/requirements.txt
+
+      - name: Pytest (skip slow tests by default)
+        run: |
+          if [ -d ml/__tests__ ]; then
+            python -m pytest ml/__tests__ -q -m "not slow"
+          else
+            echo "ml/__tests__ not present on this branch — skipping"
+          fi
+
+  # ─────────────────── Contract gate ───────────────────
+  # Hard fail if packages/contracts changes don't keep redaction green.
+  contracts-gate:
+    name: contracts · redaction gate
+    runs-on: ubuntu-latest
+    if: ${{ contains(github.event.pull_request.changed_files, 'packages/contracts/') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Redaction contract test
+        run: pnpm --filter @ignislink/contracts test
