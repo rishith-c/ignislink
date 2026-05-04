@@ -1,0 +1,54 @@
+{
+  "name": "@ignislink/contracts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./detection": {
+      "types": "./dist/detection.d.ts",
+      "default": "./dist/detection.js"
+    },
+    "./dispatch": {
+      "types": "./dist/dispatch.d.ts",
+      "default": "./dist/dispatch.js"
+    },
+    "./geometry": {
+      "types": "./dist/geometry.d.ts",
+      "default": "./dist/geometry.js"
+    },
+    "./incident-events": {
+      "types": "./dist/incident-events.d.ts",
+      "default": "./dist/incident-events.js"
+    },
+    "./predict-spread": {
+      "types": "./dist/predict-spread.d.ts",
+      "default": "./dist/predict-spread.js"
+    },
+    "./verification": {
+      "types": "./dist/verification.d.ts",
+      "default": "./dist/verification.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "echo 'no lint configured for contracts'",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.3"
+  }
+}

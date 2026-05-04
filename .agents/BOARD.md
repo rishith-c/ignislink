@@ -1,6 +1,6 @@
 # IgnisLink Agent Board
 
-Last updated: 2026-05-02T05:24:06Z
+Last updated: 2026-05-02T16:21:17Z
 
 ## Protocol
 
@@ -13,16 +13,15 @@ Last updated: 2026-05-02T05:24:06Z
 
 | Task | Owner | Branch | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Draft PRD sections 6-10 | codex | docs/prd-codex | merged | PR #1 merged to `main`; content integrated into `docs/prd-integrate`. |
-| Draft PRD sections 1-5 | claude | docs/prd-claude | integration PR open | Conflict-resolved integration branch `docs/prd-integrate` combines sections 1-5 and 6-10. |
-| Stage-0 scaffold (monorepo + apps/web + packages/{ui,geospatial,contracts}) | codex+claude | feat/web/stage-0-scaffold | changes requested | Draft PR #3 open. Codex accepts not splitting contracts, but typecheck/geospatial failures must be fixed before undraft/merge. |
-| Full application build acceleration | codex+claude | multiple | coordinating | User directed all agents to start and finish the full app, including model training. Immediate gate: merge PRD PRs, tag `v0.0.1-prd`, then parallelize Stage 0/1/3 work by ownership. |
+| Initial PRD integration | codex+claude | docs/prd-integrate | complete | PR #16 merged; tag `v0.0.1-prd` pushed. PR #1/#2 superseded by the integrated PRD. |
+| Stage-0 scaffold (monorepo + apps/web + packages/{ui,geospatial,contracts}) | codex+claude | feat/web/stage-0-scaffold | in review | Draft PR #3 rebased onto `main`; package gates fixed through `6b63ff8`; latest coordination/web sync included. |
+| Full application build acceleration | codex+claude | multiple | coordinating | User directed all agents to start and finish the full app, including model training. PRD gate is complete; next Codex path is backend/worker/infra Stage 0, while Claude continues frontend/ML. |
 
 ## Backlog
 
 | Stage | Task | Owner | Status |
 | --- | --- | --- | --- |
-| 0 | Scaffold `apps/api-py`, `apps/api-node`, `apps/worker`, `infra/`, and CI | codex | pending until PRD approved |
+| 0 | Scaffold `apps/api-py`, `apps/api-node`, `apps/worker`, `infra/`, and CI | codex | ready |
 | 0 | ~~Scaffold `apps/web`, `packages/ui`, `packages/contracts`, and docs shell~~ | claude | landed on PR #3 (draft) |
 | 1 | FIRMS ingestion filters with tests first | codex | pending |
 | 1 | Verification worker contracts with Agent A | codex | pending |
@@ -34,8 +33,7 @@ Last updated: 2026-05-02T05:24:06Z
 
 ## Immediate Critical Path
 
-1. Merge PRD integration branch `docs/prd-integrate`.
-2. Tag `v0.0.1-prd`.
-3. Fix PR #3 contract/geospatial verification failures, then merge without splitting unless ownership concerns override the technical recommendation.
-4. Codex starts backend Stage 0: `apps/api-py`, `apps/api-node`, `apps/worker`, `infra/docker-compose.yml`, CI.
-5. Claude starts frontend console shell and ML scaffold/model-card in parallel after PRD merge.
+1. Keep PR #3 current and merge once Claude confirms the cross-domain package hardening.
+2. Codex starts backend Stage 0: `apps/api-py`, `apps/api-node`, `apps/worker`, `infra/docker-compose.yml`, CI.
+3. Claude continues frontend console/map and ML scaffold/model-card in parallel.
+4. After Stage 0 merges, Codex begins Stage 1 FIRMS ingestion with tests first.

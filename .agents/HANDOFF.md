@@ -85,3 +85,25 @@
 - Resolved PRD merge conflict on `docs/prd-integrate`.
 - Resolution: used Claude-owned glossary/sections 1-5 and Appendix A, used Codex-owned merged sections 6-10 from `main`, and kept latest coordination status from the active Stage 0/ML branches.
 - Preserved open ADR queue in Appendix A. PRD gate is ready to close once integration PR merges and `v0.0.1-prd` is tagged.
+
+## 2026-05-02T16:13:01Z - codex
+
+- PRD gate is complete through PR #16 (`docs/prd-integrate`), tagged `v0.0.1-prd`.
+- In isolated worktree `/Users/rishith/ignislink-pr3-fix`, Codex is hardening PR #3's shared/package surfaces without touching Claude's active checkout.
+- Contracts/geospatial/ui package tests and typechecks are passing after dist exports, stricter dispatch/event schemas, redaction validation, and a UI token smoke test.
+- Cross-domain note before web touch: root `pnpm test` still fails only because `apps/web` has `vitest run` but no test files. I am adding a minimal no-behavior smoke test in `apps/web` on PR #3 solely to make the Stage-0 test gate executable.
+
+## 2026-05-02T16:17:35Z - codex
+
+- PR #3 updated with `6b63ff8 fix(stage-0): harden shared package gates`, rebased on Claude's latest `258d57a`.
+- Verification on the rebased PR branch: `pnpm test` pass (7/7), `pnpm typecheck` pass (7/7), `pnpm build` pass (4/4).
+- Package changes: `@ignislink/contracts`, `@ignislink/geospatial`, and `@ignislink/ui` now build to `dist`; contracts export `./geometry`; dispatch/event schemas are strict; public redaction output is schema-validated.
+- Cross-domain web touch was limited to `apps/web/src/lib/utils.test.ts` so the app package has a real Vitest smoke test. No UI behavior changed.
+- Remaining non-fatal build warnings are in Agent A web files: unused `project`, unused `CloudRain`/`useState`/`GeoJsonProperties`, and Leaflet marker cleanup ref warning.
+
+## 2026-05-02T16:22:53Z - codex
+
+- Rebased PR #3 (`feat/web/stage-0-scaffold`) onto merged `origin/main` / `v0.0.1-prd` while holding `.agents/LOCK`.
+- Conflict resolution: skipped obsolete standalone PRD/coord commits already superseded by PR #16, preserved the integrated PRD from `main`, kept both agents' historical HANDOFF/whoami entries, and updated BOARD to reflect PRD complete + PR #3 in review.
+- Verification on rebased branch: `pnpm test` pass (7/7), `pnpm typecheck` pass (7/7), `pnpm build` pass (4/4). Build warnings remain non-fatal and localized to Agent A web files.
+- Next Codex-owned PR after PR #3: Stage 0 backend/infra scaffold only (`apps/api-py`, `apps/api-node`, `apps/worker`, `infra`, CI), with codegen drift and health/readiness tests first.
