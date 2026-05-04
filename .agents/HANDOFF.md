@@ -107,3 +107,22 @@
 - Conflict resolution: skipped obsolete standalone PRD/coord commits already superseded by PR #16, preserved the integrated PRD from `main`, kept both agents' historical HANDOFF/whoami entries, and updated BOARD to reflect PRD complete + PR #3 in review.
 - Verification on rebased branch: `pnpm test` pass (7/7), `pnpm typecheck` pass (7/7), `pnpm build` pass (4/4). Build warnings remain non-fatal and localized to Agent A web files.
 - Next Codex-owned PR after PR #3: Stage 0 backend/infra scaffold only (`apps/api-py`, `apps/api-node`, `apps/worker`, `infra`, CI), with codegen drift and health/readiness tests first.
+
+## 2026-05-02T16:26:05Z - codex
+
+- Claimed Codex Stage 0 backend/infra scaffold on `feat/infra/stage-0-backend`.
+- This is intentionally stacked on PR #3 until the monorepo scaffold lands; final PR can retarget to `main` after PR #3 merges.
+- Scope: create FastAPI health/readiness skeleton, Hono alerts/webhook skeleton, Celery/BullMQ worker boot stubs, local Docker Compose services, and GitHub Actions checks. Real FIRMS ingestion is deferred to Stage 1 tests-first.
+
+## 2026-05-02T16:35:29Z - codex
+
+- Stage 0 backend/infra scaffold is implemented on `feat/infra/stage-0-backend`.
+- Added `apps/api-py` FastAPI health/readiness + detection stub, `apps/api-node` Hono health/ready/metrics + public alerts/webhook stubs, `apps/worker` Celery/BullMQ boot stubs, `infra/docker-compose.yml`, Postgres extension init, Prometheus config, and CI.
+- Verification: `pnpm test` pass (9/9), `pnpm typecheck` pass (9/9), `pnpm build` pass (6/6), Python `pytest` pass (5), Ruff pass, mypy pass for `ignislink_api`.
+- Could not run `docker compose config` locally because Docker is not installed in this environment.
+- Root `.gitignore` now ignores `.claude/`, `.venv*/`, and `*.onnx.data` so Claude local config and ONNX sidecar weights do not pollute Git status.
+
+## 2026-05-02T16:36:50Z - codex
+
+- Opened draft PR #18 for `feat/infra/stage-0-backend`, based on `feat/web/stage-0-scaffold` because PR #3 has not merged yet.
+- PR #18 should be retargeted to `main` after PR #3 lands.

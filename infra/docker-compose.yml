@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: timescale/timescaledb-ha:pg16
+    environment:
+      POSTGRES_DB: ignislink
+      POSTGRES_USER: ignislink
+      POSTGRES_PASSWORD: ignislink
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/home/postgres/pgdata/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ignislink -d ignislink"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api-py:
+    build:
+      context: ..
+      dockerfile: apps/api-py/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://ignislink:ignislink@postgres:5432/ignislink
+      REDIS_URL: redis://redis:6379/0
+      REQUIRE_DEPENDENCIES: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  api-node:
+    build:
+      context: ..
+      dockerfile: apps/api-node/Dockerfile
+    environment:
+      PORT: "3001"
+      REDIS_URL: redis://redis:6379/0
+      WEBHOOK_SECRET: dev-webhook-secret-change-me
+    ports:
+      - "3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  celery-worker:
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+    command: ["celery", "-A", "ignislink_worker.celery_app:celery_app", "beat", "--loglevel=INFO"]
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - api-node
+
+volumes:
+  postgres-data:
+  redis-data:

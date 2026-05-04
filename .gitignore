@@ -15,6 +15,7 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+.venv*/
 venv/
 .env.venv
 .pytest_cache/
@@ -28,6 +29,7 @@ mlflow.db
 checkpoints/
 *.ckpt
 *.onnx
+*.onnx.data
 *.pth
 ml/data/raw/
 ml/data/processed/
@@ -49,6 +51,7 @@ ml/data/cache/
 .DS_Store
 Thumbs.db
 .idea/
+.claude/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.shared.json

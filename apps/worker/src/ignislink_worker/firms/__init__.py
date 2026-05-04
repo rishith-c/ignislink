@@ -1,0 +1,1 @@
+"""FIRMS ingestion task namespace."""

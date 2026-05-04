@@ -1,6 +1,6 @@
 # IgnisLink Agent Board
 
-Last updated: 2026-05-02T16:21:17Z
+Last updated: 2026-05-02T16:36:50Z
 
 ## Protocol
 
@@ -15,13 +15,14 @@ Last updated: 2026-05-02T16:21:17Z
 | --- | --- | --- | --- | --- |
 | Initial PRD integration | codex+claude | docs/prd-integrate | complete | PR #16 merged; tag `v0.0.1-prd` pushed. PR #1/#2 superseded by the integrated PRD. |
 | Stage-0 scaffold (monorepo + apps/web + packages/{ui,geospatial,contracts}) | codex+claude | feat/web/stage-0-scaffold | in review | Draft PR #3 rebased onto `main`; package gates fixed through `6b63ff8`; latest coordination/web sync included. |
+| Backend/infra Stage-0 scaffold | codex | feat/infra/stage-0-backend | draft PR #18 | Stacked on PR #3 until Stage-0 monorepo lands; local Node/Python/Turbo checks pass. |
 | Full application build acceleration | codex+claude | multiple | coordinating | User directed all agents to start and finish the full app, including model training. PRD gate is complete; next Codex path is backend/worker/infra Stage 0, while Claude continues frontend/ML. |
 
 ## Backlog
 
 | Stage | Task | Owner | Status |
 | --- | --- | --- | --- |
-| 0 | Scaffold `apps/api-py`, `apps/api-node`, `apps/worker`, `infra/`, and CI | codex | ready |
+| 0 | Scaffold `apps/api-py`, `apps/api-node`, `apps/worker`, `infra/`, and CI | codex | in review |
 | 0 | ~~Scaffold `apps/web`, `packages/ui`, `packages/contracts`, and docs shell~~ | claude | landed on PR #3 (draft) |
 | 1 | FIRMS ingestion filters with tests first | codex | pending |
 | 1 | Verification worker contracts with Agent A | codex | pending |
