@@ -1,4 +1,4 @@
-# SENTRY · IgnisLink
+# SENTRY
 
 A real-time wildfire monitoring system that detects fires, predicts their spread, and helps coordinate emergency response.
 
@@ -15,8 +15,8 @@ Three product surfaces:
 ## Quick start (5 commands)
 
 ```bash
-git clone https://github.com/rishith-c/ignislink.git
-cd ignislink
+git clone https://github.com/rishith-c/sentry_max.git
+cd sentry_max
 cp .env.example .env.local       # then paste your FIRMS_API_KEY
 pnpm install
 pnpm --filter @ignislink/web dev
@@ -42,8 +42,8 @@ Tested on macOS 25.4 (Apple Silicon) and Linux. Windows users: use WSL 2.
 ## Install
 
 ```bash
-git clone https://github.com/rishith-c/ignislink.git
-cd ignislink
+git clone https://github.com/rishith-c/sentry_max.git
+cd sentry_max
 
 # JS / TS deps for the web app + workspaces
 pnpm install
