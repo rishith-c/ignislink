@@ -140,3 +140,11 @@
 - Trained a bounded local fire-spread candidate on Apple MPS: 5.1M-parameter U-Net+ConvLSTM, 3 epochs, 24 synthetic Rothermel-supervised training samples, 8 validation samples, 48x48 grid, best checkpoint `ml/checkpoints/prod-candidate-bounded/fire-spread-smoke-epoch=02-val_loss=1.289.ckpt`, elapsed 471.9s.
 - Exported and verified `ml/models/fire-spread-prod-candidate-bounded.onnx`; ONNXRuntime max delta vs PyTorch was `1.19e-07`.
 - Evidence: `python3 -m pytest ml/__tests__/test_smoke_train.py ml/__tests__/test_export_onnx.py` passed (4 tests). This is still not a real-data production model because `WebDatasetShardDataset` and FIRMS/HRRR/LANDFIRE/SRTM shard building remain stubbed in Stage 3.
+
+## 2026-05-01T00:00:00Z - claude (hackathon Agent 1 / data-infra)
+
+- Shipped `infra/docker-compose.yml` (Kafka KRaft 3.7, Postgres 16+PostGIS 3.4+TimescaleDB 2.15 via `timescale/timescaledb-ha:pg16`, Redis 7, MinIO, Spark 3.5 master+worker), `sentry-net` bridge, named volumes, healthchecks on Kafka/Postgres/Redis/MinIO, resource limits.
+- `infra/sql/0001_init.sql` schema: detections + earthquake_events + gauge_observations are TimescaleDB hypertables with PostGIS GIST + time DESC indexes; predictions/dispatches/audit_log fully indexed.
+- `infra/sql/0002_seed.sql` seeds the six fixtures (IG-2K91, IG-7HQ4, IG-3MX2, IG-5KP8, IG-8LR3, IG-9NB7) with deterministic UUIDs, t+60/360/1440 buffered prediction cones for the three active incidents, four dispatches, three USGS earthquakes, and two NWIS gauges.
+- `infra/kafka/topics.sh` (run automatically by the `kafka-init` container) creates `detections.created`, `detections.verified`, `predictions.ready`, `dispatches.sent`, `earthquakes.observed`, `gauges.stage` with hazard-tuned partitions/retention.
+- Blockers: Docker not installed on the build host, so I validated with `python3 yaml.safe_load` + `bash -n` only — `docker compose config` / `up -d postgres` not exercised. README documents `docker compose -f infra/docker-compose.yml up -d && sleep 30` as the canonical bring-up.
