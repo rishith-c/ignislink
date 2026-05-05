@@ -301,7 +301,7 @@ export function FloodMap({ viaBackend = false }: FloodMapProps = {}) {
         </Card>
       )}
       {selected && (
-        <Card className="absolute bottom-4 left-4 z-[401] w-[420px] p-4">
+        <Card className="absolute bottom-4 left-1/2 z-[401] w-[440px] -translate-x-1/2 p-4 shadow-xl">
           <div className="flex items-center gap-2">
             <span
               className="inline-block h-3 w-3 rounded-full"

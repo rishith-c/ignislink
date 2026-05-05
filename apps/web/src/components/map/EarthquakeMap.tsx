@@ -175,12 +175,37 @@ export function EarthquakeMap({ viaBackend = false }: EarthquakeMapProps = {}) {
     features.forEach((f) => {
       const [lon, lat] = f.geometry.coordinates;
       const mag = f.properties.mag ?? 0;
+      const depthKm = f.geometry.coordinates[2];
       const radius = magToRadius(mag);
       const color = magToColor(mag);
+      const hoursSince = (Date.now() - f.properties.time) / 3.6e6;
+      const p4 = pAftershock(mag, hoursSince, 4.0);
+      const p5 = pAftershock(mag, hoursSince, 5.0);
+
+      // Crosshair + 3 staggered seismic-ring divIcons — replicates
+      // rishith-c/sentry's epicenter visual. The dot itself is below; the
+      // rings layer on top as a non-interactive overlay.
       const html = `
         <div style="position:relative;width:${radius * 2}px;height:${radius * 2}px;">
-          <div style="position:absolute;inset:0;border-radius:50%;background:${color}33;"></div>
-          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${radius}px;height:${radius}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 8px ${color}cc;"></div>
+          <div style="position:absolute;inset:0;border-radius:50%;background:${color}26;"></div>
+          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${radius}px;height:${radius}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 10px ${color}cc;"></div>
+          <div style="position:absolute;left:50%;top:50%;width:${radius * 4}px;height:${radius * 4}px;border-radius:50%;border:1.5px solid ${color}cc;animation:seismic-ring 2.5s ease-out 0s infinite;pointer-events:none;"></div>
+          <div style="position:absolute;left:50%;top:50%;width:${radius * 5}px;height:${radius * 5}px;border-radius:50%;border:1.5px solid ${color}99;animation:seismic-ring 2.5s ease-out 0.6s infinite;pointer-events:none;"></div>
+          <div style="position:absolute;left:50%;top:50%;width:${radius * 6}px;height:${radius * 6}px;border-radius:50%;border:1.5px solid ${color}66;animation:seismic-ring 2.5s ease-out 1.2s infinite;pointer-events:none;"></div>
+        </div>`;
+      // Tight monospace popup per rishith-c/sentry. Click → still expands the
+      // bottom-center detail card (kept for the deeper ETAS metrics) but the
+      // popup gives instant context without opening anything.
+      const popupHtml = `
+        <div style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:#f0f4f8;line-height:1.5;min-width:180px;">
+          <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:2px;">M${mag.toFixed(1)} · ${depthKm.toFixed(0)}km depth</div>
+          <div style="color:#a1a1aa;">${f.properties.place}</div>
+          <div style="margin-top:6px;display:flex;gap:8px;font-size:10px;">
+            <span style="color:#a1a1aa;">P(M≥4,24h):</span><span style="color:#f0f4f8;font-weight:600;">${(p4 * 100).toFixed(2)}%</span>
+          </div>
+          <div style="display:flex;gap:8px;font-size:10px;">
+            <span style="color:#a1a1aa;">P(M≥5,24h):</span><span style="color:#f0f4f8;font-weight:600;">${(p5 * 100).toFixed(2)}%</span>
+          </div>
         </div>`;
       const m = L.marker([lat, lon], {
         icon: L.divIcon({
@@ -189,7 +214,14 @@ export function EarthquakeMap({ viaBackend = false }: EarthquakeMapProps = {}) {
           iconSize: [radius * 2, radius * 2],
           iconAnchor: [radius, radius],
         }),
-      });
+      })
+        .bindPopup(popupHtml, {
+          closeButton: true,
+          autoClose: true,
+          className: "sentry-quake-popup",
+          maxWidth: 280,
+          offset: [0, -radius / 2],
+        });
       m.on("click", () => setSelected(f));
       m.addTo(map);
       markers.push(m);
@@ -269,7 +301,7 @@ export function EarthquakeMap({ viaBackend = false }: EarthquakeMapProps = {}) {
         </Card>
       )}
       {selected && (
-        <Card className="absolute bottom-4 left-4 z-[401] w-[360px] p-4">
+        <Card className="absolute bottom-4 left-1/2 z-[401] w-[400px] -translate-x-1/2 p-4 shadow-xl">
           <div className="flex items-center gap-2">
             <span
               className="inline-block h-3 w-3 rounded-full"

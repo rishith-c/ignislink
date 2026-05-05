@@ -719,9 +719,12 @@ function MapPanel({
           layers card for the same top-right corner. The legend at bottom-left
           still indicates the live/fallback state when needed. */}
 
-      <MapLegend />
+      {/* HOTSPOTS legend is fire-specific — hide it when in earthquake/flood
+          mode so it doesn't overlap with the EarthquakeMap / FloodMap detail
+          cards (which open at bottom-left). */}
+      {hazard === "fire" && <MapLegend />}
 
-      {selected && <SelectedMapCard incident={selected} />}
+      {hazard === "fire" && selected && <SelectedMapCard incident={selected} />}
     </section>
   );
 }

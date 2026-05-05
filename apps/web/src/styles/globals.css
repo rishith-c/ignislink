@@ -191,6 +191,14 @@
     color: hsl(var(--primary-foreground));
   }
 
+  /* Seismic ring keyframe — copied verbatim from rishith-c/sentry's
+     MapView.tsx for the earthquake epicenter visual. 3 concentric rings
+     expand + fade on 2.5s loop, staggered. Used by EarthquakeMap markers. */
+  @keyframes seismic-ring {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0.85; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+  }
+
   /* Pulsing dot for fire-station markers + dispatched-unit markers in 2D
      Leaflet view. The outer ring pulses in scale + opacity to draw the
      dispatcher's eye to active stations / units en route. */
