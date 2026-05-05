@@ -208,6 +208,10 @@ services:
       - "7077:7077"
     volumes:
       - spark-events:/opt/bitnami/spark/spark-events
+      # Mount the worker's PySpark job directory + shared geo/common helpers
+      # so spark-submit can run them straight from the repo without a rebuild.
+      - ../apps/worker/src/spark:/opt/jobs:ro
+      - ../apps/worker/src/common:/opt/jobs/common:ro
     networks:
       - sentry-net
     deploy:
@@ -233,6 +237,8 @@ services:
       SPARK_USER: spark
     volumes:
       - spark-events:/opt/bitnami/spark/spark-events
+      - ../apps/worker/src/spark:/opt/jobs:ro
+      - ../apps/worker/src/common:/opt/jobs/common:ro
     networks:
       - sentry-net
     deploy:
@@ -240,3 +246,39 @@ services:
         limits:
           cpus: "2.0"
           memory: 2560m
+
+  # ===========================================================================
+  # === BEGIN AGENT-2 (api-py) ADDITIONS ======================================
+  # FastAPI backend that serves predictions, dispatch decisions, and ingests
+  # detections. Owned by Agent 2 / feat/hackathon/backend. Safe to merge into
+  # Agent 1's data-infra branch — no overlapping keys above this fence.
+  # ===========================================================================
+  api-py:
+    build:
+      context: ..
+      dockerfile: apps/api-py/Dockerfile
+    container_name: sentry-api-py
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sentry:sentry@postgres:5432/sentry
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_BOOTSTRAP: kafka:9092
+      ONNX_MODEL_PATH: /app/ml/models/fire-spread-prod-candidate-bounded.onnx
+      MODEL_VERSION: fire-spread-prod-candidate-bounded
+      REQUIRE_DEPENDENCIES: "false"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - sentry-net
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+  # === END AGENT-2 (api-py) ADDITIONS ========================================

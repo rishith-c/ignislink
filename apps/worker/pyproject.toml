@@ -1,19 +1,35 @@
 [project]
 name = "ignislink-worker"
-version = "0.0.1"
-description = "Celery workers for IgnisLink ingestion, verification, enrichment, and outbox jobs."
+version = "0.1.0"
+description = "SENTRY hackathon data pipeline: Kafka producers + Postgres sinks + Spark Structured Streaming."
 requires-python = ">=3.12"
 dependencies = [
-  "celery>=5.4.0",
+  # Kafka
+  "aiokafka>=0.11.0",
+  "kafka-python>=2.0.2",
+  # HTTP / data
+  "requests>=2.32.0",
+  "httpx>=0.27.0",
+  # Postgres (binary wheel — no system libpq required)
+  "psycopg[binary]>=3.2.1",
+  # Config + logging
+  "pydantic>=2.7.0",
   "pydantic-settings>=2.6.0",
-  "redis>=5.1.0",
   "structlog>=24.4.0",
+  # Existing Celery surface kept so nothing else in stage-0 breaks.
+  "celery>=5.4.0",
+  "redis>=5.1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.3.3",
+  "pytest-asyncio>=0.24.0",
   "ruff>=0.7.1",
+]
+spark = [
+  # Pinned to match the bitnami/spark:3.5 image used in infra/docker-compose.yml.
+  "pyspark==3.5.0",
 ]
 
 [build-system]
@@ -21,11 +37,18 @@ requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ignislink_worker"]
+packages = [
+  "src/ignislink_worker",
+  "src/sources",
+  "src/sinks",
+  "src/spark",
+  "src/common",
+]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100

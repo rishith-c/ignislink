@@ -1,0 +1,68 @@
+{
+  "name": "ns1:timeSeriesResponseType",
+  "declaredType": "org.cuahsi.waterml.TimeSeriesResponseType",
+  "scope": "javax.xml.bind.JAXBElement$GlobalScope",
+  "value": {
+    "queryInfo": {
+      "queryURL": "https://waterservices.usgs.gov/nwis/iv/?format=json&stateCd=ca&parameterCd=00065&siteStatus=active&period=PT1H"
+    },
+    "timeSeries": [
+      {
+        "sourceInfo": {
+          "siteName": "FEATHER R AT NICOLAUS CA",
+          "siteCode": [{"value": "11425500", "network": "NWIS"}],
+          "geoLocation": {
+            "geogLocation": {
+              "srs": "EPSG:4326",
+              "latitude": 38.9013889,
+              "longitude": -121.5908333
+            }
+          }
+        },
+        "variable": {
+          "variableCode": [{"value": "00065"}],
+          "variableName": "Gage height, ft",
+          "unit": {"unitCode": "ft"}
+        },
+        "values": [
+          {
+            "value": [
+              {"value": "12.45", "qualifiers": ["P"], "dateTime": "2026-04-30T20:00:00.000-07:00"},
+              {"value": "12.47", "qualifiers": ["P"], "dateTime": "2026-04-30T20:15:00.000-07:00"},
+              {"value": "12.49", "qualifiers": ["P"], "dateTime": "2026-04-30T20:30:00.000-07:00"},
+              {"value": "12.52", "qualifiers": ["P"], "dateTime": "2026-04-30T20:45:00.000-07:00"}
+            ]
+          }
+        ]
+      },
+      {
+        "sourceInfo": {
+          "siteName": "SACRAMENTO R AT FREEPORT CA",
+          "siteCode": [{"value": "11447650", "network": "NWIS"}],
+          "geoLocation": {
+            "geogLocation": {
+              "srs": "EPSG:4326",
+              "latitude": 38.4555,
+              "longitude": -121.5008
+            }
+          }
+        },
+        "variable": {
+          "variableCode": [{"value": "00065"}],
+          "variableName": "Gage height, ft",
+          "unit": {"unitCode": "ft"}
+        },
+        "values": [
+          {
+            "value": [
+              {"value": "27.10", "qualifiers": ["P"], "dateTime": "2026-04-30T20:00:00.000-07:00"},
+              {"value": "27.12", "qualifiers": ["P"], "dateTime": "2026-04-30T20:15:00.000-07:00"},
+              {"value": "-999999", "qualifiers": ["P", "Ice"], "dateTime": "2026-04-30T20:30:00.000-07:00"},
+              {"value": "27.18", "qualifiers": ["P"], "dateTime": "2026-04-30T20:45:00.000-07:00"}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

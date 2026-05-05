@@ -162,3 +162,21 @@
 - `.env.local.example` documents `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
 - Constraint compliance: this PR touches only `apps/web/`. The `apps/api-py/`, `apps/worker/`, `infra/`, `ml/`, and `packages/` modifications visible in `git status` are from Agents 1–3 working in parallel and are NOT in this commit.
 - Open items for the demo path: when Agent 2's `/stream/detections` SSE endpoint isn't live yet, the console transparently falls back to 30s polling — the LIVE pill turns amber. Dispatch toasts will surface a clear "backend unreachable" error instead of failing silently.
+
+## 2026-05-05T23:18:00Z - agent-3 (data-pipeline)
+
+- Branch: `feat/hackathon/data-pipeline` (worktree of `ignislink-forge-ui`). Touched only `apps/worker/` plus a small spark-jobs volume mount on `infra/docker-compose.yml`. Did not touch `apps/web/`, `apps/api-py/`, `packages/`, or `ml/`.
+- Built the full live data pipeline:
+  - **Sources** (`apps/worker/src/sources/`): `firms.py` (NASA FIRMS VIIRS_NOAA20_NRT, 60s, 24h × 375 m sliding dedup, fixture fallback when `FIRMS_API_KEY` is unset), `usgs_quakes.py` (USGS `all_day.geojson`, 5 min), `usgs_water.py` (USGS NWIS IV stage parameter 00065, 15 min). All three async pollers publish JSON to Kafka topics `detections.created`, `earthquakes.observed`, `gauges.stage`.
+  - **Sinks** (`apps/worker/src/sinks/postgres.py`): one Kafka consumer per topic running on a worker thread, bulk-insert into `detections` / `earthquake_events` / `gauge_observations`, idempotent via primary keys + `ON CONFLICT`. `psycopg[binary]` for zero-libpq install.
+  - **Spark Structured Streaming** (`apps/worker/src/spark/aggregations.py`): reads `detections.created` from Kafka, geohash-5 buckets each detection (UDF wraps the dependency-free encoder shared with `common/geo.py`), 1-min tumbling-window count + avg/max FRP, `foreachBatch` JDBC upsert into `detections_agg_5min`. Submit recipe in `apps/worker/README.md`.
+  - **Orchestrator** (`apps/worker/src/main.py` + `apps/worker/__main__.py`): `python -m apps.worker --sources firms,quakes,water --sinks postgres`. Asyncio task per source/sink, signal-handled graceful shutdown.
+- **Migrations** (`apps/worker/migrations/`): `0001_base_tables.sql` (PostGIS + Timescale ext, three base tables), `0002_hypertables.sql`, `0003_aggregations.sql` (the spec-mandated `detections_agg_5min` Timescale hypertable). All idempotent.
+- **Fixtures** (`apps/worker/fixtures/`): `firms_sample.csv` (10 rows, two intentionally close pairs to exercise the dedup), `usgs_quakes_sample.geojson` (3 features), `usgs_water_sample.json` (with a `-999999` sentinel to test rejection). Judges can demo the entire pipeline without a NASA key.
+- **Tests** (`apps/worker/tests/`): 21/21 passing. `test_firms_dedup.py` covers the dedup window radius + horizon + fixture round-trip + normalization edge cases. `test_usgs_parse.py` covers both USGS parsers including missing-value sentinels and empty payloads. `test_geo.py` adds geohash + haversine reference-point sanity (Eiffel Tower precision-5 == `u09tu`).
+- **Docker**: `apps/worker/Dockerfile` rewritten — `python:3.12-slim`, installs `apps/worker` editable, `ENTRYPOINT ["python", "-m", "apps.worker"]`. Build context is the repo root.
+- **Infra change**: added a read-only volume mount of `apps/worker/src/spark` (and `apps/worker/src/common`) into `/opt/jobs` on both `spark-master` and `spark-worker` so the streaming job is visible to `spark-submit` without rebuilding the bitnami image. This is the only line I touched outside `apps/worker/`.
+- **Compatibility**: kept the legacy `src/ignislink_worker/` Celery surface untouched so PR #14's BullMQ webhook fan-out + Stage-0 Celery boot test (`test_celery_boot.py`) still pass.
+- **Open coordination notes**:
+  - Agent 1's `infra/sql/` is currently empty; the worker migrations are self-contained so the pipeline boots without it. If Agent 1 lands the same `detections` / `earthquake_events` / `gauge_observations` tables, the `IF NOT EXISTS` guards make ours a no-op.
+  - Branch was opened as `feat/hackathon/data-pipeline` per the brief (the worktree was previously on `feat/hackathon/data-infra` — Agent 1's docker-compose work is included as the parent commit so we share infra).
