@@ -15,6 +15,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getApiBaseUrl } from "@/lib/api/client";
+
+interface FloodMapProps {
+  // When true, route requests through the FastAPI backend's
+  // /floods/gauges?state=ca endpoint instead of USGS NWIS directly.
+  viaBackend?: boolean;
+}
 
 interface USGSValue {
   value: string;
@@ -142,7 +149,7 @@ const BAND_COLOR: Record<ReturnType<typeof stageBand>, string> = {
   flood: "#ef4444",
 };
 
-export function FloodMap() {
+export function FloodMap({ viaBackend = false }: FloodMapProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LMap | null>(null);
   const [gauges, setGauges] = useState<GaugeRow[] | null>(null);
@@ -151,24 +158,44 @@ export function FloodMap() {
 
   useEffect(() => {
     let alive = true;
-    fetch(USGS_URL, { cache: "no-store" })
-      .then((r) => {
-        if (!r.ok) throw new Error(`USGS HTTP ${r.status}`);
-        return r.json() as Promise<USGSWaterResponse>;
-      })
-      .then((j) => {
+    const backendUrl = `${getApiBaseUrl().replace(/\/$/, "")}/floods/gauges?state=ca`;
+    const primaryUrl = viaBackend ? backendUrl : USGS_URL;
+
+    async function load(url: string): Promise<USGSWaterResponse> {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return (await r.json()) as USGSWaterResponse;
+    }
+
+    (async () => {
+      try {
+        const j = await load(primaryUrl);
         if (!alive) return;
         const rows = parseTimeSeries(j).slice(0, 200);
         setGauges(rows);
-      })
-      .catch((e: unknown) => {
+      } catch (e: unknown) {
+        if (viaBackend) {
+          try {
+            const j = await load(USGS_URL);
+            if (!alive) return;
+            const rows = parseTimeSeries(j).slice(0, 200);
+            setGauges(rows);
+            return;
+          } catch (fallbackErr) {
+            if (!alive) return;
+            setError(fallbackErr instanceof Error ? fallbackErr.message : "fetch failed");
+            return;
+          }
+        }
         if (!alive) return;
         setError(e instanceof Error ? e.message : "fetch failed");
-      });
+      }
+    })();
+
     return () => {
       alive = false;
     };
-  }, []);
+  }, [viaBackend]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current || !gauges) return;

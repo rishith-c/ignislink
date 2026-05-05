@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { FIXTURE_INCIDENTS, type FixtureIncident } from "@/lib/fixtures";
+import { DEFAULT_BASE_URL } from "@/lib/api/client";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,38 @@ function deriveFuelDryness(humidityPct: number | null, precip10dMm: number | nul
   const humidityDryness = humidityPct === null ? 0.6 : 1 - clamp01(humidityPct / 100);
   const precipDryness = precip10dMm === null ? 0.6 : 1 - clamp01(precip10dMm / 35);
   return clamp01(0.45 * humidityDryness + 0.55 * precipDryness);
+}
+
+function getApiBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_BASE_URL;
+}
+
+/**
+ * Try to pull live detections from Agent 2's FastAPI backend.
+ * Returns null on any failure so the caller can fall through to the
+ * Open-Meteo-enriched fixture path.
+ */
+async function fetchBackendDetections(): Promise<IncidentResponse[] | null> {
+  const baseUrl = getApiBaseUrl();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/detections`, {
+      cache: "no-store",
+      signal: controller.signal,
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { incidents?: unknown };
+    if (!Array.isArray(json.incidents)) return null;
+    // Permissive — we trust the backend to return shapes the console can
+    // consume. The shape evolves on Agent 2's side; for now we cast.
+    return json.incidents as IncidentResponse[];
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchOpenMeteoEnvironmental(incident: FixtureIncident): Promise<{
@@ -119,6 +152,23 @@ function fallbackIncident(incident: FixtureIncident): IncidentResponse {
 }
 
 export async function GET() {
+  // 1. Try the FastAPI backend first.
+  const backend = await fetchBackendDetections();
+  if (backend && backend.length > 0) {
+    return NextResponse.json(
+      {
+        incidents: backend,
+        provenance: {
+          baseDetections: "fastapi-backend",
+          weather: "carried by backend",
+          backendUrl: getApiBaseUrl(),
+        },
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  // 2. Fallback: enrich fixtures with Open-Meteo current weather.
   const incidents = await Promise.all(
     FIXTURE_INCIDENTS.map(async (incident): Promise<IncidentResponse> => {
       const live = await fetchOpenMeteoEnvironmental(incident);
@@ -139,12 +189,10 @@ export async function GET() {
       provenance: {
         baseDetections: "fixture-seed",
         weather: "Open-Meteo current endpoint with fixture fallback",
+        backendUrl: getApiBaseUrl(),
+        backendReachable: false,
       },
     },
-    {
-      headers: {
-        "Cache-Control": "no-store",
-      },
-    },
+    { headers: { "Cache-Control": "no-store" } },
   );
 }

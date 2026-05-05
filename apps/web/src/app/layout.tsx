@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "@/styles/globals.css";
+import { Providers } from "./providers";
 
 // System font stack — avoids the network round-trip to Google Fonts for the
 // dispatcher console (24/7 ops should not be blocked on a CDN). The CSS
@@ -38,7 +39,9 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <div id="main">{children}</div>
+        <Providers>
+          <div id="main">{children}</div>
+        </Providers>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -27,6 +27,7 @@ import {
   Wind,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   FIXTURE_INCIDENTS,
   statusColorClass,
@@ -34,6 +35,8 @@ import {
   type FixtureIncident,
   type VerificationStatus,
 } from "@/lib/fixtures";
+import { postDispatch, isOk } from "@/lib/api/client";
+import { useDetectionsStream, type SseStatus } from "@/lib/api/sse";
 import { cn } from "@/lib/utils";
 import { LeafletMap } from "@/components/map/MapContainer";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -155,23 +158,58 @@ export default function ConsolePage() {
   const [filter, setFilter] = useState<"all" | "active" | "emerging">("active");
   const [search, setSearch] = useState("");
 
+  // 30s poll fallback — even when SSE is open we keep polling so the queue
+  // re-syncs after SSE reconnects. The /api/incidents proxy itself prefers
+  // the FastAPI backend and falls back to fixtures when it's down.
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/incidents", { cache: "no-store" })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<{ incidents: ConsoleIncident[] }>;
-      })
-      .then((json) => {
-        if (!cancelled && Array.isArray(json.incidents)) setIncidents(json.incidents);
-      })
-      .catch(() => {
-        if (!cancelled) setIncidents(FIXTURE_INCIDENTS.map(withFallbackEnvironmental));
-      });
+    function pull() {
+      fetch("/api/incidents", { cache: "no-store" })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json() as Promise<{ incidents: ConsoleIncident[] }>;
+        })
+        .then((json) => {
+          if (!cancelled && Array.isArray(json.incidents) && json.incidents.length > 0) {
+            setIncidents(json.incidents);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setIncidents(FIXTURE_INCIDENTS.map(withFallbackEnvironmental));
+        });
+    }
+    pull();
+    const interval = setInterval(pull, 30_000);
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, []);
+
+  // Live append of new detections via SSE. We merge by id so the same
+  // detection can update in place rather than producing a duplicate.
+  const onSseEvent = useCallback((event: { detection?: Record<string, unknown> }) => {
+    if (!event.detection) return;
+    const det = event.detection as Partial<ConsoleIncident> & { id?: string };
+    if (!det.id) return;
+    setIncidents((prev) => {
+      const existing = prev.findIndex((i) => i.id === det.id);
+      const merged: ConsoleIncident = {
+        ...(existing >= 0 ? prev[existing]! : FIXTURE_INCIDENTS[0]!),
+        ...(det as ConsoleIncident),
+      };
+      if (existing >= 0) {
+        const next = [...prev];
+        next[existing] = merged;
+        return next;
+      }
+      // Prepend so the Framer-Motion entry animation runs at the top of the
+      // queue. The QueueItem already has a sentry-file-in stagger.
+      return [merged, ...prev];
+    });
+  }, []);
+
+  const { status: sseStatus } = useDetectionsStream({ onEvent: onSseEvent });
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -228,6 +266,7 @@ export default function ConsolePage() {
           emergingCount={emergingCount}
           totalCount={incidents.length}
           windSource={windSource}
+          sseStatus={sseStatus}
         />
 
         <ResizablePanelGroup direction="horizontal" className="min-h-0 flex-1">
@@ -260,16 +299,43 @@ export default function ConsolePage() {
   );
 }
 
+function LivePill({ status }: { status: SseStatus }) {
+  const tone =
+    status === "open"
+      ? { dot: "bg-emerald-400", text: "text-emerald-200", border: "border-emerald-300/40", label: "LIVE" }
+      : status === "fallback"
+        ? { dot: "bg-amber-400", text: "text-amber-200", border: "border-amber-300/40", label: "POLL" }
+        : status === "connecting"
+          ? { dot: "bg-zinc-400", text: "text-zinc-300", border: "border-zinc-300/30", label: "CONNECTING" }
+          : { dot: "bg-rose-500", text: "text-rose-200", border: "border-rose-400/40", label: "OFFLINE" };
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border bg-black/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md",
+        tone.border,
+        tone.text,
+      )}
+      aria-live="polite"
+      aria-label={`stream ${status}`}
+    >
+      <span className={cn("sentry-live-dot h-1.5 w-1.5 rounded-full", tone.dot)} />
+      {tone.label}
+    </span>
+  );
+}
+
 function AppChrome({
   activeCount,
   emergingCount,
   totalCount,
   windSource,
+  sseStatus,
 }: {
   activeCount: number;
   emergingCount: number;
   totalCount: number;
   windSource: string;
+  sseStatus: SseStatus;
 }) {
   return (
     <header className="flex h-[60px] shrink-0 items-center gap-4 border-b border-white/10 bg-black/[0.28] px-5 backdrop-blur-md">
@@ -297,6 +363,7 @@ function AppChrome({
       </div>
 
       <div className="ml-auto hidden items-center gap-2 lg:flex">
+        <LivePill status={sseStatus} />
         <Stat label="Active" value={activeCount} tone="emerald" icon={<Activity />} />
         <Stat label="Emerging" value={emergingCount} tone="orange" icon={<AlertTriangle />} />
         <Stat label="24h Total" value={totalCount} tone="zinc" icon={<Radar />} />
@@ -837,6 +904,26 @@ function EnvironmentalGrid({ environmental }: { environmental?: EnvironmentalInp
 function DetailSheet({ incident, onClose }: { incident: ConsoleIncident; onClose: () => void }) {
   const dispatchable =
     incident.verification === "EMERGING" || incident.verification === "UNREPORTED";
+  const [dispatching, setDispatching] = useState(false);
+
+  const handleDispatch = useCallback(async () => {
+    if (!dispatchable || dispatching) return;
+    setDispatching(true);
+    const result = await postDispatch(incident.id);
+    setDispatching(false);
+    if (isOk(result)) {
+      const eta = result.data.eta_minutes ?? incident.stations[0]?.etaMinutes;
+      const station = result.data.station_id ?? incident.stations[0]?.name ?? "nearest";
+      toast.success(
+        `Dispatch sent — ${typeof eta === "number" ? `ETA ${eta} min` : "in flight"}`,
+        { description: `${incident.shortId} → ${station}` },
+      );
+    } else {
+      toast.error(`Dispatch failed: ${result.error}`, {
+        description: `Backend unreachable; check that the FastAPI service at NEXT_PUBLIC_API_BASE_URL is running.`,
+      });
+    }
+  }, [dispatchable, dispatching, incident]);
 
   return (
     <Sheet
@@ -1017,7 +1104,8 @@ function DetailSheet({ incident, onClose }: { incident: ConsoleIncident; onClose
 
         <SheetFooter className="border-t border-white/10 bg-black/[0.14] px-5 py-4 sm:flex-col sm:space-x-0">
           <Button
-            disabled={!dispatchable}
+            disabled={!dispatchable || dispatching}
+            onClick={handleDispatch}
             className={cn(
               "h-11 w-full rounded-md text-sm font-semibold",
               dispatchable
@@ -1027,9 +1115,11 @@ function DetailSheet({ incident, onClose }: { incident: ConsoleIncident; onClose
           >
             <Send className="h-4 w-4" />
             {dispatchable
-              ? `Dispatch ${
-                  incident.stations[0]?.name.split(" ").slice(0, 3).join(" ") ?? "nearest"
-                }`
+              ? dispatching
+                ? "Dispatching…"
+                : `Dispatch ${
+                    incident.stations[0]?.name.split(" ").slice(0, 3).join(" ") ?? "nearest"
+                  }`
               : "Dispatch suppressed for this verification status"}
           </Button>
           <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-zinc-500">

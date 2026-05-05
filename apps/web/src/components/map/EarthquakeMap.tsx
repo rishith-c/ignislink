@@ -15,6 +15,14 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getApiBaseUrl } from "@/lib/api/client";
+
+interface EarthquakeMapProps {
+  // When true, fetch from the FastAPI backend's /earthquakes endpoint
+  // instead of USGS directly. Defaults to false to preserve the existing
+  // demo behaviour (works without docker-compose running).
+  viaBackend?: boolean;
+}
 
 interface USGSFeature {
   id: string;
@@ -92,7 +100,7 @@ function timeAgo(ms: number): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export function EarthquakeMap() {
+export function EarthquakeMap({ viaBackend = false }: EarthquakeMapProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LMap | null>(null);
   const [features, setFeatures] = useState<USGSFeature[] | null>(null);
@@ -101,28 +109,54 @@ export function EarthquakeMap() {
 
   useEffect(() => {
     let alive = true;
-    fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson", {
-      cache: "no-store",
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`USGS HTTP ${r.status}`);
-        return r.json() as Promise<USGSResponse>;
-      })
-      .then((j) => {
+    // Backend route is /earthquakes (Agent 2 owns it). It may proxy USGS or
+    // serve from cache; either way, the response shape matches USGSResponse.
+    // If the backend call fails we fall back to USGS direct so the demo
+    // surface keeps rendering.
+    const backendUrl = `${getApiBaseUrl().replace(/\/$/, "")}/earthquakes`;
+    const directUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
+    const primaryUrl = viaBackend ? backendUrl : directUrl;
+
+    async function load(url: string): Promise<USGSResponse> {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return (await r.json()) as USGSResponse;
+    }
+
+    (async () => {
+      try {
+        const j = await load(primaryUrl);
         if (!alive) return;
         const filtered = j.features
           .filter((f) => f.properties.mag !== null && (f.properties.mag ?? 0) >= M_C)
           .sort((a, b) => (b.properties.mag ?? 0) - (a.properties.mag ?? 0));
         setFeatures(filtered);
-      })
-      .catch((e: unknown) => {
+      } catch (e: unknown) {
+        // If the backend is the primary and it's down, retry direct USGS.
+        if (viaBackend) {
+          try {
+            const j = await load(directUrl);
+            if (!alive) return;
+            const filtered = j.features
+              .filter((f) => f.properties.mag !== null && (f.properties.mag ?? 0) >= M_C)
+              .sort((a, b) => (b.properties.mag ?? 0) - (a.properties.mag ?? 0));
+            setFeatures(filtered);
+            return;
+          } catch (fallbackErr) {
+            if (!alive) return;
+            setError(fallbackErr instanceof Error ? fallbackErr.message : "fetch failed");
+            return;
+          }
+        }
         if (!alive) return;
         setError(e instanceof Error ? e.message : "fetch failed");
-      });
+      }
+    })();
+
     return () => {
       alive = false;
     };
-  }, []);
+  }, [viaBackend]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current || !features) return;
