@@ -302,41 +302,108 @@ export function LeafletMap({
         }
       }
 
-      // Fire-station markers — only when not in publicOnly mode.
+      // Fire-station + dispatched-unit markers (pulsing dots).
+      // Each station shows a pulsing dot at its base; an additional unit
+      // marker animates from station → incident along the connection line
+      // with the actual unit ETA driving the travel time. Color-coded so
+      // the dispatcher can tell engine vs aerial vs dozer at a glance.
       if (showStations && inc.stations && inc.stations.length > 0) {
         for (const stn of inc.stations) {
           if (typeof stn.lat !== "number" || typeof stn.lon !== "number") continue;
-          const stnHtml = `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:rgba(8,8,10,0.9);border:1.5px solid rgba(228,228,231,0.6);box-shadow:0 0 4px rgba(0,0,0,0.6);font-family:ui-sans-serif,system-ui;color:#fafafa;font-size:11px;font-weight:600;line-height:1;pointer-events:auto;" title="${stn.name} · ${stn.etaMinutes} min">🚒</div>`;
+          // Color by station-name kind hint (basic heuristic until the
+          // contracts package's ResourceCandidate.kind ships through).
+          const kind = /heli|h-\d/i.test(stn.name)
+            ? "helicopter"
+            : /tanker|t-\d|s-2|fixed/i.test(stn.name)
+              ? "fixed-wing"
+              : /dozer|d-\d/i.test(stn.name)
+                ? "dozer"
+                : /crew|hand/i.test(stn.name)
+                  ? "hand-crew"
+                  : "engine";
+          const color =
+            kind === "helicopter"
+              ? "#22d3ee"
+              : kind === "fixed-wing"
+                ? "#a78bfa"
+                : kind === "dozer"
+                  ? "#fbbf24"
+                  : kind === "hand-crew"
+                    ? "#34d399"
+                    : "#f97316";
+
+          // Pulsing station dot (CSS keyframe in globals.css). The
+          // `--pulse-color` custom property is the per-marker tint.
+          const stnHtml = `<div class="sentry-pulse-dot" style="--pulse-color:${color};"></div>`;
           const stnIcon = L.divIcon({
             html: stnHtml,
             className: "ignis-station-marker",
-            iconSize: [24, 24],
-            iconAnchor: [12, 12],
+            iconSize: [18, 18],
+            iconAnchor: [9, 9],
           });
           const stnMarker = L.marker([stn.lat, stn.lon], { icon: stnIcon }).bindTooltip(
-            `${stn.name} · ${stn.etaMinutes} min ETA`,
-            {
-              direction: "top",
-              offset: [0, -8],
-              opacity: 0.92,
-            },
+            `${stn.name} · ${kind} · ETA ${stn.etaMinutes} min`,
+            { direction: "top", offset: [0, -10], opacity: 0.92 },
           );
           stationLayerRef.current!.addLayer(stnMarker);
 
-          // Faint dotted line from station to hotspot.
+          // Solid connection line from station to hotspot — color-tinted
+          // so the path is identifiable when many stations overlap.
           const conn = L.polyline(
             [
               [stn.lat, stn.lon],
               [inc.lat, inc.lon],
             ],
             {
-              color: "rgba(228,228,231,0.18)",
-              weight: 1,
-              dashArray: "1 4",
+              color,
+              weight: 1.2,
+              opacity: 0.4,
+              dashArray: "2 6",
               interactive: false,
             },
           );
           stationLayerRef.current!.addLayer(conn);
+
+          // Animated dispatched-unit marker — pulses while travelling.
+          const unitHtml = `<div class="sentry-pulse-dot" style="--pulse-color:${color};transform:scale(1.15);"></div>`;
+          const unitIcon = L.divIcon({
+            html: unitHtml,
+            className: "ignis-unit-marker",
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+          });
+          const unitMarker = L.marker([stn.lat, stn.lon], {
+            icon: unitIcon,
+            zIndexOffset: 800,
+          }).bindTooltip(`${kind.toUpperCase()} en route · ETA ${stn.etaMinutes} min`, {
+            direction: "top",
+            offset: [0, -12],
+            opacity: 0.92,
+          });
+          stationLayerRef.current!.addLayer(unitMarker);
+
+          // Travel animation: ease-out so the unit slows as it nears the
+          // incident. Scene-time = etaMinutes × 0.4s (so a 12 min ETA
+          // crosses the screen in ~5s).
+          const sceneDurationMs = Math.max(2500, stn.etaMinutes * 400);
+          const startLat = stn.lat;
+          const startLon = stn.lon;
+          const endLat = inc.lat;
+          const endLon = inc.lon;
+          const t0 = performance.now();
+          let raf = 0;
+          const tick = () => {
+            const now = performance.now();
+            const t = Math.min(1, (now - t0) / sceneDurationMs);
+            const eased = 1 - Math.pow(1 - t, 2.5);
+            const curLat = startLat + (endLat - startLat) * eased;
+            const curLon = startLon + (endLon - startLon) * eased;
+            unitMarker.setLatLng([curLat, curLon]);
+            if (t < 1) raf = requestAnimationFrame(tick);
+          };
+          raf = requestAnimationFrame(tick);
+          // Ensure cleanup if the layer gets cleared mid-animation.
+          unitMarker.on("remove", () => cancelAnimationFrame(raf));
         }
       }
     }

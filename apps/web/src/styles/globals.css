@@ -191,6 +191,51 @@
     color: hsl(var(--primary-foreground));
   }
 
+  /* Pulsing dot for fire-station markers + dispatched-unit markers in 2D
+     Leaflet view. The outer ring pulses in scale + opacity to draw the
+     dispatcher's eye to active stations / units en route. */
+  .sentry-pulse-dot {
+    position: relative;
+    width: 18px;
+    height: 18px;
+  }
+  .sentry-pulse-dot::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--pulse-color, hsl(var(--primary)));
+    opacity: 0.55;
+    animation: sentry-pulse 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .sentry-pulse-dot::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    margin-top: -4px;
+    border-radius: 50%;
+    background: var(--pulse-color, hsl(var(--primary)));
+    box-shadow: 0 0 6px var(--pulse-color, hsl(var(--primary))), 0 0 0 1.5px rgba(255, 255, 255, 0.85);
+  }
+  @keyframes sentry-pulse {
+    0% {
+      transform: scale(0.6);
+      opacity: 0.65;
+    }
+    70% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+  }
+
   .sentry-no-scrollbar {
     scrollbar-width: none;
   }
