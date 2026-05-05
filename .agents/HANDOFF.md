@@ -107,3 +107,36 @@
 - Conflict resolution: skipped obsolete standalone PRD/coord commits already superseded by PR #16, preserved the integrated PRD from `main`, kept both agents' historical HANDOFF/whoami entries, and updated BOARD to reflect PRD complete + PR #3 in review.
 - Verification on rebased branch: `pnpm test` pass (7/7), `pnpm typecheck` pass (7/7), `pnpm build` pass (4/4). Build warnings remain non-fatal and localized to Agent A web files.
 - Next Codex-owned PR after PR #3: Stage 0 backend/infra scaffold only (`apps/api-py`, `apps/api-node`, `apps/worker`, `infra`, CI), with codegen drift and health/readiness tests first.
+
+## 2026-05-04T22:52:29Z - codex
+
+- User requested implementation of the provided Forge design handoff (`Forge.html`) into the SENTRY web app.
+- Cross-domain note: Codex is touching Agent A-owned frontend files on `feat/web/forge-sentry-ui` because the user explicitly requested this UI pass.
+- Source design read: `forge/README.md`, `forge/chats/chat1.md`, `forge/project/Forge.html`, imported React files, and Forge style skills. Key translation targets are macOS liquid-glass chrome, warm orange accent, mesh background, spring entry motion, resizable split panes, live/glowing status dots, and polished translucent panels.
+
+## 2026-05-04T23:07:52Z - codex
+
+- Forge/SENTRY console UI pass implemented on `feat/web/forge-sentry-ui`.
+- Frontend changes: `/console` now uses a macOS-style glass window shell, Forge orange/material tokens, warm/dark mesh background, resizable shadcn panels, shadcn `Button`/`Badge`/`Input`/`Sheet` controls, polished map overlays, selected-incident glass inspector, and shadcn-powered Leaflet layer toggles.
+- Validation: `pnpm --filter @ignislink/web typecheck` pass, `pnpm --filter @ignislink/web test` pass, `pnpm --filter @ignislink/web build` pass with no warnings after cleanup. Local smoke check: `curl -I http://localhost:3001/console` returned `200 OK`.
+- Handoff for Agent A: please review frontend visuals and interaction details before merge; Codex intentionally limited this pass to the user-requested design implementation and did not alter ML/model training behavior.
+
+## 2026-05-04T23:09:28Z - codex
+
+- Draft PR opened for Forge/SENTRY console UI pass: https://github.com/rishith-c/sentry_max/pull/19
+- Branch pushed: `feat/web/forge-sentry-ui`.
+- PR remains draft/cross-domain with `needs-handoff`; Agent A should review before merge.
+
+## 2026-05-04T23:16:24Z - codex
+
+- User screenshot feedback addressed on `feat/web/forge-sentry-ui`: removed fake desktop traffic-light chrome and outer margins, made `/console` a true full-screen app, moved map terrain/layer controls below the map title overlay to prevent collisions, removed the large cursor spotlight that obscured terrain, and converted the detail sheet to a flush right operations drawer.
+- Added `GET /api/incidents` in the web app to enrich incident wind/humidity/temperature/10-day precip/fuel-dryness from Open-Meteo at runtime, with fixture fallback only when the live weather call fails. The console now surfaces the weather provenance instead of presenting hardcoded wind as live.
+- Validation repeated: `pnpm --filter @ignislink/web typecheck`, `pnpm --filter @ignislink/web test`, `pnpm --filter @ignislink/web build`, `curl -I http://localhost:3001/console`, and `curl http://localhost:3001/api/incidents` all pass/respond. Note: production-quality real-data ML training is still blocked by the Stage 3 WebDataset reader/shard builder stub in `ml/training/dataset.py`; this UI pass does not pretend the smoke-trained model is production trained.
+
+## 2026-05-04T23:53:43Z - codex
+
+- User requested a clean localhost restart and a stronger model run. Codex stopped the existing localhost listeners, started PR #19 from a clean worktree at `/Users/rishith/ignislink-forge-ui`, and verified `http://localhost:3000/console` plus `GET /api/incidents`.
+- Added explicit MPS/GPU accelerator support to `ml/training/train.py` while preserving CPU as the default for deterministic tests.
+- Trained a bounded local fire-spread candidate on Apple MPS: 5.1M-parameter U-Net+ConvLSTM, 3 epochs, 24 synthetic Rothermel-supervised training samples, 8 validation samples, 48x48 grid, best checkpoint `ml/checkpoints/prod-candidate-bounded/fire-spread-smoke-epoch=02-val_loss=1.289.ckpt`, elapsed 471.9s.
+- Exported and verified `ml/models/fire-spread-prod-candidate-bounded.onnx`; ONNXRuntime max delta vs PyTorch was `1.19e-07`.
+- Evidence: `python3 -m pytest ml/__tests__/test_smoke_train.py ml/__tests__/test_export_onnx.py` passed (4 tests). This is still not a real-data production model because `WebDatasetShardDataset` and FIRMS/HRRR/LANDFIRE/SRTM shard building remain stubbed in Stage 3.

@@ -1,6 +1,6 @@
 # IgnisLink Agent Board
 
-Last updated: 2026-05-02T16:21:17Z
+Last updated: 2026-05-04T23:16:24Z
 
 ## Protocol
 
@@ -16,6 +16,7 @@ Last updated: 2026-05-02T16:21:17Z
 | Initial PRD integration | codex+claude | docs/prd-integrate | complete | PR #16 merged; tag `v0.0.1-prd` pushed. PR #1/#2 superseded by the integrated PRD. |
 | Stage-0 scaffold (monorepo + apps/web + packages/{ui,geospatial,contracts}) | codex+claude | feat/web/stage-0-scaffold | in review | Draft PR #3 rebased onto `main`; package gates fixed through `6b63ff8`; latest coordination/web sync included. |
 | Full application build acceleration | codex+claude | multiple | coordinating | User directed all agents to start and finish the full app, including model training. PRD gate is complete; next Codex path is backend/worker/infra Stage 0, while Claude continues frontend/ML. |
+| Forge/SENTRY console UI pass | codex | feat/web/forge-sentry-ui | draft PR #19 updated | Cross-domain user-requested pass applying the fetched Forge handoff to `/console`: full-screen app shell, no desktop traffic lights/margins, non-overlapping map controls, live Open-Meteo environmental enrichment, shadcn controls, map polish, and cleanup of web build warnings. |
 
 ## Backlog
 

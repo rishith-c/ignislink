@@ -5,7 +5,7 @@
 
 import statesAlbersData from "us-atlas/states-albers-10m.json";
 import { feature, mesh } from "topojson-client";
-import type { FeatureCollection, GeoJsonProperties, Geometry, MultiLineString } from "geojson";
+import type { FeatureCollection, Geometry, MultiLineString } from "geojson";
 import type { Topology, Objects } from "topojson-specification";
 
 type StatesObjects = Objects<{ name: string }> & {
