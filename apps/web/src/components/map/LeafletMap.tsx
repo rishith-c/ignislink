@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import L, { type Map as LMap, type Marker as LMarker } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 export type IncidentStatus =
   | "EMERGING"
@@ -74,14 +79,12 @@ const TILE_LAYERS = {
   },
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution:
-      "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, USGS, USDA FSA",
+    attribution: "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, USGS, USDA FSA",
     maxZoom: 18,
   },
   terrain: {
     url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-    attribution:
-      'Map data © <a href="https://opentopomap.org/">OpenTopoMap</a> (CC-BY-SA)',
+    attribution: 'Map data © <a href="https://opentopomap.org/">OpenTopoMap</a> (CC-BY-SA)',
     maxZoom: 17,
   },
 };
@@ -162,12 +165,13 @@ export function LeafletMap({
     tileLayerRef.current = tileLayer;
 
     mapRef.current = map;
+    const markers = markersRef.current;
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       map.remove();
       mapRef.current = null;
-      markersRef.current.clear();
+      markers.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -253,7 +257,10 @@ export function LeafletMap({
       // along the bearing. Drawn from largest (24h, faintest) inward to (1h,
       // strongest) so the smaller ones stay visible on top.
       if (showContours && inc.predictedSpread && inc.predictedSpread.length > 0) {
-        const horizonStyles: Record<60 | 360 | 1440, { stroke: string; fill: string; weight: number; dash?: string }> = {
+        const horizonStyles: Record<
+          60 | 360 | 1440,
+          { stroke: string; fill: string; weight: number; dash?: string }
+        > = {
           60: { stroke: color, fill: color, weight: 2 },
           360: { stroke: color, fill: color, weight: 1.5, dash: "4 4" },
           1440: { stroke: color, fill: color, weight: 1, dash: "2 6" },
@@ -278,7 +285,12 @@ export function LeafletMap({
         // Wind-direction line emanating from the hotspot (~ to the 6 h ellipse tip).
         const six = inc.predictedSpread.find((p) => p.horizonMin === 360);
         if (six) {
-          const tip = offsetByMeters(inc.lat, inc.lon, areaAcresToMajorRadiusM(six.areaAcres), six.bearingDeg);
+          const tip = offsetByMeters(
+            inc.lat,
+            inc.lon,
+            areaAcresToMajorRadiusM(six.areaAcres),
+            six.bearingDeg,
+          );
           const arrow = L.polyline([[inc.lat, inc.lon], tip], {
             color: color,
             weight: 1.5,
@@ -290,33 +302,108 @@ export function LeafletMap({
         }
       }
 
-      // Fire-station markers — only when not in publicOnly mode.
+      // Fire-station + dispatched-unit markers (pulsing dots).
+      // Each station shows a pulsing dot at its base; an additional unit
+      // marker animates from station → incident along the connection line
+      // with the actual unit ETA driving the travel time. Color-coded so
+      // the dispatcher can tell engine vs aerial vs dozer at a glance.
       if (showStations && inc.stations && inc.stations.length > 0) {
         for (const stn of inc.stations) {
           if (typeof stn.lat !== "number" || typeof stn.lon !== "number") continue;
-          const stnHtml = `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:rgba(8,8,10,0.9);border:1.5px solid rgba(228,228,231,0.6);box-shadow:0 0 4px rgba(0,0,0,0.6);font-family:ui-sans-serif,system-ui;color:#fafafa;font-size:11px;font-weight:600;line-height:1;pointer-events:auto;" title="${stn.name} · ${stn.etaMinutes} min">🚒</div>`;
+          // Color by station-name kind hint (basic heuristic until the
+          // contracts package's ResourceCandidate.kind ships through).
+          const kind = /heli|h-\d/i.test(stn.name)
+            ? "helicopter"
+            : /tanker|t-\d|s-2|fixed/i.test(stn.name)
+              ? "fixed-wing"
+              : /dozer|d-\d/i.test(stn.name)
+                ? "dozer"
+                : /crew|hand/i.test(stn.name)
+                  ? "hand-crew"
+                  : "engine";
+          const color =
+            kind === "helicopter"
+              ? "#22d3ee"
+              : kind === "fixed-wing"
+                ? "#a78bfa"
+                : kind === "dozer"
+                  ? "#fbbf24"
+                  : kind === "hand-crew"
+                    ? "#34d399"
+                    : "#f97316";
+
+          // Pulsing station dot (CSS keyframe in globals.css). The
+          // `--pulse-color` custom property is the per-marker tint.
+          const stnHtml = `<div class="sentry-pulse-dot" style="--pulse-color:${color};"></div>`;
           const stnIcon = L.divIcon({
             html: stnHtml,
             className: "ignis-station-marker",
-            iconSize: [24, 24],
-            iconAnchor: [12, 12],
+            iconSize: [18, 18],
+            iconAnchor: [9, 9],
           });
-          const stnMarker = L.marker([stn.lat, stn.lon], { icon: stnIcon })
-            .bindTooltip(`${stn.name} · ${stn.etaMinutes} min ETA`, {
-              direction: "top",
-              offset: [0, -8],
-              opacity: 0.92,
-            });
+          const stnMarker = L.marker([stn.lat, stn.lon], { icon: stnIcon }).bindTooltip(
+            `${stn.name} · ${kind} · ETA ${stn.etaMinutes} min`,
+            { direction: "top", offset: [0, -10], opacity: 0.92 },
+          );
           stationLayerRef.current!.addLayer(stnMarker);
 
-          // Faint dotted line from station to hotspot.
-          const conn = L.polyline([[stn.lat, stn.lon], [inc.lat, inc.lon]], {
-            color: "rgba(228,228,231,0.18)",
-            weight: 1,
-            dashArray: "1 4",
-            interactive: false,
-          });
+          // Solid connection line from station to hotspot — color-tinted
+          // so the path is identifiable when many stations overlap.
+          const conn = L.polyline(
+            [
+              [stn.lat, stn.lon],
+              [inc.lat, inc.lon],
+            ],
+            {
+              color,
+              weight: 1.2,
+              opacity: 0.4,
+              dashArray: "2 6",
+              interactive: false,
+            },
+          );
           stationLayerRef.current!.addLayer(conn);
+
+          // Animated dispatched-unit marker — pulses while travelling.
+          const unitHtml = `<div class="sentry-pulse-dot" style="--pulse-color:${color};transform:scale(1.15);"></div>`;
+          const unitIcon = L.divIcon({
+            html: unitHtml,
+            className: "ignis-unit-marker",
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+          });
+          const unitMarker = L.marker([stn.lat, stn.lon], {
+            icon: unitIcon,
+            zIndexOffset: 800,
+          }).bindTooltip(`${kind.toUpperCase()} en route · ETA ${stn.etaMinutes} min`, {
+            direction: "top",
+            offset: [0, -12],
+            opacity: 0.92,
+          });
+          stationLayerRef.current!.addLayer(unitMarker);
+
+          // Travel animation: ease-out so the unit slows as it nears the
+          // incident. Scene-time = etaMinutes × 0.4s (so a 12 min ETA
+          // crosses the screen in ~5s).
+          const sceneDurationMs = Math.max(2500, stn.etaMinutes * 400);
+          const startLat = stn.lat;
+          const startLon = stn.lon;
+          const endLat = inc.lat;
+          const endLon = inc.lon;
+          const t0 = performance.now();
+          let raf = 0;
+          const tick = () => {
+            const now = performance.now();
+            const t = Math.min(1, (now - t0) / sceneDurationMs);
+            const eased = 1 - Math.pow(1 - t, 2.5);
+            const curLat = startLat + (endLat - startLat) * eased;
+            const curLon = startLon + (endLon - startLon) * eased;
+            unitMarker.setLatLng([curLat, curLon]);
+            if (t < 1) raf = requestAnimationFrame(tick);
+          };
+          raf = requestAnimationFrame(tick);
+          // Ensure cleanup if the layer gets cleared mid-animation.
+          unitMarker.on("remove", () => cancelAnimationFrame(raf));
         }
       }
     }
@@ -393,10 +480,7 @@ export function LeafletMap({
       spawnAccum -= spawnEach;
 
       const sources = incidentsRef.current.filter(
-        (i) =>
-          i.status === "EMERGING" ||
-          i.status === "UNREPORTED" ||
-          i.status === "CREWS_ACTIVE",
+        (i) => i.status === "EMERGING" || i.status === "UNREPORTED" || i.status === "CREWS_ACTIVE",
       );
 
       if (spawnEach > 0) {
@@ -485,7 +569,7 @@ export function LeafletMap({
 
   return (
     <div
-      className={className ?? "relative w-full overflow-hidden rounded-lg border border-border"}
+      className={className ?? "border-border relative w-full overflow-hidden rounded-lg border"}
       style={{ height }}
     >
       <div ref={containerRef} className="absolute inset-0 z-0" />
@@ -495,52 +579,60 @@ export function LeafletMap({
         aria-hidden
       />
 
-      {/* Basemap toggle — top-left so the detail sheet (which slides in from
-          the right and covers the right ~520px of the map) never hides it. */}
-      <div className="absolute left-3 top-3 z-[401] flex gap-1 rounded-md border border-border bg-card/90 p-1 backdrop-blur">
-        {(["streets", "satellite", "terrain"] as const).map((b) => (
-          <button
-            key={b}
-            onClick={() => setBasemap(b)}
-            className={`rounded px-2 py-1 text-[10px] font-medium uppercase tracking-wide transition ${
-              basemap === b
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {b === "streets" ? "Map" : b === "satellite" ? "Sat" : "Topo"}
-          </button>
-        ))}
-      </div>
-
-      {/* Layer toggles — left-stacked under the basemap toggle so both stay
-          visible when the right-side detail sheet is open. */}
-      <div className="absolute left-3 top-14 z-[401] flex flex-col gap-1 rounded-md border border-border bg-card/90 p-1 backdrop-blur">
-        <button
-          onClick={() => setShowContours((v) => !v)}
-          className={`rounded px-2 py-1 text-[10px] font-medium uppercase tracking-wide transition ${
-            showContours
-              ? "bg-primary/80 text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+      {/* Consolidated map controls — single shadcn-styled card. Tabs for the
+          basemap segmented toggle, Switches for the layer toggles. No
+          gradients; uses the workspace's default --primary token. The card
+          sits at top-right (top-left is reserved for the hazard switcher). */}
+      <Card className="absolute right-4 top-4 z-[401] w-[200px] gap-0 border-border/60 bg-card/85 p-2 shadow-lg backdrop-blur-md supports-[backdrop-filter]:bg-card/70">
+        <div className="px-1 pb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Basemap
+        </div>
+        <Tabs value={basemap} onValueChange={(v) => setBasemap(v as typeof basemap)}>
+          <TabsList className="grid h-7 w-full grid-cols-3 bg-muted/60 p-0.5">
+            <TabsTrigger value="streets" className="h-6 px-2 text-[10px] font-medium uppercase">
+              Map
+            </TabsTrigger>
+            <TabsTrigger value="satellite" className="h-6 px-2 text-[10px] font-medium uppercase">
+              Sat
+            </TabsTrigger>
+            <TabsTrigger value="terrain" className="h-6 px-2 text-[10px] font-medium uppercase">
+              Topo
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <Separator className="my-2" />
+        <div className="px-1 pb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Layers
+        </div>
+        <label
+          htmlFor="ll-ml-spread"
+          className="flex cursor-pointer items-center justify-between rounded-md px-1.5 py-1 text-[11px] text-foreground hover:bg-muted/60"
           title="ML predicted 50% spread @ 1h / 6h / 24h"
         >
-          ML spread
-        </button>
+          <span>ML spread</span>
+          <Switch
+            id="ll-ml-spread"
+            checked={showContours}
+            onCheckedChange={setShowContours}
+            className="h-4 w-7 [&>span]:h-3 [&>span]:w-3"
+          />
+        </label>
         {!publicOnly && (
-          <button
-            onClick={() => setShowStations((v) => !v)}
-            className={`rounded px-2 py-1 text-[10px] font-medium uppercase tracking-wide transition ${
-              showStations
-                ? "bg-primary/80 text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+          <label
+            htmlFor="ll-stations"
+            className="flex cursor-pointer items-center justify-between rounded-md px-1.5 py-1 text-[11px] text-foreground hover:bg-muted/60"
             title="Nearest fire stations"
           >
-            Stations
-          </button>
+            <span>Stations</span>
+            <Switch
+              id="ll-stations"
+              checked={showStations}
+              onCheckedChange={setShowStations}
+              className="h-4 w-7 [&>span]:h-3 [&>span]:w-3"
+            />
+          </label>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

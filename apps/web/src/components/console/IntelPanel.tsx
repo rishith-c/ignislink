@@ -11,7 +11,6 @@ import {
   MessageSquare,
   Users,
   Flame,
-  CloudRain,
   CheckCircle2,
   XCircle,
   Loader2,
@@ -99,8 +98,9 @@ export function IntelPanel({ incidentId }: { incidentId: string }) {
 
   if (loading)
     return (
-      <div className="flex items-center gap-2 rounded border border-border bg-card/40 p-3 text-xs text-muted-foreground">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Fetching live intel · cross-checking FIRMS, Cal Fire, scanner…
+      <div className="border-border bg-card/40 text-muted-foreground flex items-center gap-2 rounded border p-3 text-xs">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Fetching live intel · cross-checking FIRMS,
+        Cal Fire, scanner…
       </div>
     );
   if (error || !data)
@@ -135,7 +135,7 @@ export function IntelPanel({ incidentId }: { incidentId: string }) {
           detail={
             data.firms.hits.length > 0
               ? `${data.firms.hits.length} satellite hits in 25 km bbox`
-              : data.firms.error ?? null
+              : (data.firms.error ?? null)
           }
         />
         <CrossCheckCard
@@ -152,7 +152,7 @@ export function IntelPanel({ incidentId }: { incidentId: string }) {
           detail={
             data.calfire.match
               ? `${data.calfire.match.AcresBurned ?? 0} acres · ${data.calfire.match.PercentContained ?? 0}% contained · ${data.calfire.match.AdminUnit ?? ""}`
-              : data.calfire.error ?? null
+              : (data.calfire.error ?? null)
           }
         />
         <CrossCheckCard
@@ -177,35 +177,55 @@ export function IntelPanel({ incidentId }: { incidentId: string }) {
 
       {/* Per-dimension threat scores */}
       <div className="grid grid-cols-2 gap-2">
-        <ScoreBar label="Fire intensity" value={data.threat.fireIntensity} tone="orange" icon={<Flame className="h-3 w-3" />} />
-        <ScoreBar label="Population threat" value={data.threat.populationThreat} tone="red" icon={<Users className="h-3 w-3" />} />
-        <ScoreBar label="Containment" value={data.threat.containment} tone="emerald" icon={<ShieldCheck className="h-3 w-3" />} />
-        <ScoreBar label="Controlled?" value={data.threat.controlledLikelihood} tone="blue" icon={<CheckCircle2 className="h-3 w-3" />} />
+        <ScoreBar
+          label="Fire intensity"
+          value={data.threat.fireIntensity}
+          tone="orange"
+          icon={<Flame className="h-3 w-3" />}
+        />
+        <ScoreBar
+          label="Population threat"
+          value={data.threat.populationThreat}
+          tone="red"
+          icon={<Users className="h-3 w-3" />}
+        />
+        <ScoreBar
+          label="Containment"
+          value={data.threat.containment}
+          tone="emerald"
+          icon={<ShieldCheck className="h-3 w-3" />}
+        />
+        <ScoreBar
+          label="Controlled?"
+          value={data.threat.controlledLikelihood}
+          tone="blue"
+          icon={<CheckCircle2 className="h-3 w-3" />}
+        />
       </div>
 
       {/* Population exposure detail */}
-      <div className="rounded border border-border bg-card/60 p-3 text-xs">
-        <div className="mb-1.5 inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="border-border bg-card/60 rounded border p-3 text-xs">
+        <div className="text-muted-foreground mb-1.5 inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide">
           <Users className="h-3 w-3" /> Population exposure
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <div className="text-[10px] text-muted-foreground">Within 5 km</div>
+            <div className="text-muted-foreground text-[10px]">Within 5 km</div>
             <div className="font-semibold">{data.population.pop5km.toLocaleString()}</div>
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground">Within 25 km</div>
+            <div className="text-muted-foreground text-[10px]">Within 25 km</div>
             <div className="font-semibold">{data.population.pop25km.toLocaleString()}</div>
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground">Nearest urban</div>
+            <div className="text-muted-foreground text-[10px]">Nearest urban</div>
             <div className="font-semibold">
               {data.population.nearestCity
                 ? `${data.population.nearestCity.name}, ${data.population.nearestCity.state}`
                 : "—"}
             </div>
             {data.population.nearestCity && (
-              <div className="text-[10px] text-muted-foreground">
+              <div className="text-muted-foreground text-[10px]">
                 {data.population.nearestCity.distanceKm.toFixed(0)} km · pop{" "}
                 {data.population.nearestCity.pop.toLocaleString()}
               </div>
@@ -216,35 +236,35 @@ export function IntelPanel({ incidentId }: { incidentId: string }) {
 
       {/* Verification sources roll-up */}
       <div>
-        <div className="mb-1.5 inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="text-muted-foreground mb-1.5 inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide">
           <Newspaper className="h-3 w-3" /> Verification sources
         </div>
         {data.sources.length === 0 ? (
-          <div className="rounded border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+          <div className="border-border text-muted-foreground rounded border border-dashed px-3 py-2 text-xs">
             No corroborating signals in the last 60 min.
           </div>
         ) : (
           <ul className="space-y-1.5">
             {data.sources.map((s, idx) => (
-              <li key={idx} className="rounded border border-border bg-card/60 px-3 py-2 text-xs">
-                <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
+              <li key={idx} className="border-border bg-card/60 rounded border px-3 py-2 text-xs">
+                <div className="text-muted-foreground flex items-center justify-between text-[10px] uppercase tracking-wide">
                   <span className="inline-flex items-center gap-1.5">
                     {sourceIcon(s.kind)} {s.kind} · {s.source}
                   </span>
                   <span>{s.ageMinutes} min ago</span>
                 </div>
                 <div className="mt-1 font-medium">{s.title}</div>
-                <div className="mt-0.5 text-muted-foreground">{s.snippet}</div>
+                <div className="text-muted-foreground mt-0.5">{s.snippet}</div>
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      <div className="text-[10px] text-muted-foreground">
+      <div className="text-muted-foreground text-[10px]">
         Fetched {new Date(data.fetchedAt).toLocaleTimeString()} · fuel factor{" "}
-        {data.fuelFactor.toFixed(2)} · sources: news/social/scanner + NASA FIRMS{" "}
-        ({data.firms.source}) + Cal Fire incidents feed.
+        {data.fuelFactor.toFixed(2)} · sources: news/social/scanner + NASA FIRMS (
+        {data.firms.source}) + Cal Fire incidents feed.
       </div>
     </div>
   );
@@ -301,8 +321,8 @@ function CrossCheckCard({
   detail: string | null;
 }) {
   return (
-    <div className="rounded border border-border bg-card/60 px-3 py-2 text-xs">
-      <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
+    <div className="border-border bg-card/60 rounded border px-3 py-2 text-xs">
+      <div className="text-muted-foreground flex items-center justify-between text-[10px] uppercase tracking-wide">
         <span className="inline-flex items-center gap-1.5">
           {icon} {label}
         </span>
@@ -315,7 +335,7 @@ function CrossCheckCard({
       <div className={cn("mt-0.5 font-medium", ok ? "text-foreground" : "text-muted-foreground")}>
         {okLabel}
       </div>
-      {detail && <div className="mt-0.5 text-[10px] text-muted-foreground">{detail}</div>}
+      {detail && <div className="text-muted-foreground mt-0.5 text-[10px]">{detail}</div>}
     </div>
   );
 }
@@ -340,8 +360,8 @@ function ScoreBar({
           ? "bg-emerald-500"
           : "bg-blue-500";
   return (
-    <div className="rounded border border-border bg-card/60 px-3 py-2">
-      <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
+    <div className="border-border bg-card/60 rounded border px-3 py-2">
+      <div className="text-muted-foreground flex items-center justify-between text-[10px] uppercase tracking-wide">
         <span className="inline-flex items-center gap-1.5">
           {icon} {label}
         </span>

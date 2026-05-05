@@ -5,33 +5,57 @@
 @layer base {
   :root {
     /* System font stack — no Google Fonts dependency. */
-    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-      "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji",
-      "Segoe UI Emoji";
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-      "Liberation Mono", "Courier New", monospace;
+    --font-sans:
+      ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+      Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-mono:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+      monospace;
 
-    /* Light theme — fallback only; dark is the default for the dispatcher console. */
+    /* Forge handoff material tokens. Exact values are kept as custom
+       properties so app code can stay semantic while matching the design. */
+    --forge-orange: #ff6b35;
+    --forge-orange-light: #ff8a4c;
+    --forge-ink: #1a1a1a;
+    --forge-warm-bg: #f4efe8;
+    --forge-dark-bg: #0b0a0d;
+    --forge-dark-panel: rgba(20, 18, 22, 0.55);
+    --forge-glass-light: rgba(255, 255, 255, 0.55);
+    --forge-glass-dark: rgba(20, 18, 22, 0.58);
+    --forge-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* SENTRY palette — synthesized from rishith-c/sentry (deep blue-black
+       surfaces, threat-orange accent #f97316) + rishith-c/staple (flat
+       Linear-clone layout, near-square radius). Light fallback; dark is
+       the default for the dispatcher console. */
     --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 24 95% 53%;            /* fire orange */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 24 95% 53%;             /* #f97316 — sentry threat-orange */
+    --primary-foreground: 222 47% 11%;
+    --secondary: 0 0% 97%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 0 0% 97%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 0 0% 97%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
     --ring: 24 95% 53%;
-    --radius: 0.5rem;
+    --radius: 0.25rem;
+
+    /* Threat-color tokens from rishith-c/sentry's DESIGN.md — used by
+       severity badges + ring indicators ONLY (never for backgrounds). */
+    --threat-green: 158 80% 39%;       /* #10b981 */
+    --threat-amber: 38 92% 50%;        /* #f59e0b */
+    --threat-orange: 24 95% 53%;       /* #f97316 */
+    --threat-red: 0 84% 60%;           /* #ef4444 */
+    --threat-purple: 271 91% 65%;      /* #a855f7 */
 
     /* Verification badge colors. */
     --verification-unreported: 240 5% 65%;
@@ -48,26 +72,34 @@
   }
 
   .dark {
-    /* Default dark theme — designed for 24/7 dispatch consoles. */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 8% 6%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 24 95% 60%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 72.2% 50.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 24 95% 60%;
+    /* sentry-style deep blue-black surfaces (rishith-c/sentry DESIGN.md
+       color-bg #020617, surface #0e1223, border #1e2d40) with threat-
+       orange as the primary accent and the same flat staple radius. */
+    --background: 222 47% 4%;          /* #020617 */
+    --foreground: 213 31% 95%;         /* #f0f4f8 */
+    --card: 224 32% 9%;                /* #0e1223 */
+    --card-foreground: 213 31% 95%;
+    --popover: 224 32% 9%;
+    --popover-foreground: 213 31% 95%;
+    --primary: 24 95% 53%;             /* #f97316 — threat-orange accent */
+    --primary-foreground: 222 47% 4%;
+    --secondary: 217 33% 13%;
+    --secondary-foreground: 213 31% 95%;
+    --muted: 217 33% 13%;
+    --muted-foreground: 215 16% 56%;   /* #64748b */
+    --accent: 217 33% 13%;
+    --accent-foreground: 213 31% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 213 31% 95%;
+    --border: 215 28% 18%;             /* #1e2d40 */
+    --input: 215 28% 18%;
+    --ring: 24 95% 53%;
+
+    --threat-green: 158 80% 39%;
+    --threat-amber: 38 92% 50%;
+    --threat-orange: 24 95% 53%;
+    --threat-red: 0 84% 60%;
+    --threat-purple: 271 91% 65%;
 
     --verification-unreported: 240 5% 50%;
     --verification-emerging: 24 95% 60%;
@@ -98,18 +130,239 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+    letter-spacing: 0;
   }
   /* Always-visible focus ring for keyboard nav (WCAG AA). */
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    @apply ring-ring ring-offset-background outline-none ring-2 ring-offset-2;
+  }
+}
+
+@layer utilities {
+  .sentry-forge-bg {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: hsl(var(--background));
+  }
+
+  .dark .sentry-forge-bg {
+    background: hsl(var(--background));
+  }
+
+  /* Grid overlay removed — pure black background per design pass. */
+
+  .sentry-window {
+    overflow: hidden;
+    border: 0.5px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    background: rgba(10, 10, 13, 0.68);
+    box-shadow:
+      0 40px 120px rgba(0, 0, 0, 0.45),
+      0 12px 40px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(40px) saturate(180%);
+  }
+
+  /* Glass cards mapped to shadcn tokens — no fixed dark backgrounds so they
+     adapt to light/dark mode. Solid (not gradient) backgrounds. */
+  .sentry-glass {
+    border: 1px solid hsl(var(--border) / 0.6);
+    background: hsl(var(--card) / 0.85);
+    box-shadow: 0 4px 16px hsl(var(--background) / 0.12);
+    backdrop-filter: blur(8px);
+  }
+
+  .sentry-glass-strong {
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--card));
+    box-shadow: 0 8px 28px hsl(var(--background) / 0.18);
+    backdrop-filter: blur(12px);
+  }
+
+  /* Replaced gradient with a flat primary fill (still uses the brand color
+     when --primary stays orange, but no linear-gradient so the UI looks
+     cleaner and adapts cleanly to dark/light mode). */
+  .sentry-primary-gradient {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  /* Pulsing dot for fire-station markers + dispatched-unit markers in 2D
+     Leaflet view. The outer ring pulses in scale + opacity to draw the
+     dispatcher's eye to active stations / units en route. */
+  .sentry-pulse-dot {
+    position: relative;
+    width: 18px;
+    height: 18px;
+  }
+  .sentry-pulse-dot::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--pulse-color, hsl(var(--primary)));
+    opacity: 0.55;
+    animation: sentry-pulse 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .sentry-pulse-dot::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    margin-top: -4px;
+    border-radius: 50%;
+    background: var(--pulse-color, hsl(var(--primary)));
+    box-shadow: 0 0 6px var(--pulse-color, hsl(var(--primary))), 0 0 0 1.5px rgba(255, 255, 255, 0.85);
+  }
+  @keyframes sentry-pulse {
+    0% {
+      transform: scale(0.6);
+      opacity: 0.65;
+    }
+    70% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+  }
+
+  .sentry-no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .sentry-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sentry-spring-in {
+    animation: sentry-spring-in 560ms var(--forge-spring) both;
+  }
+
+  .sentry-file-in {
+    animation: sentry-file-in 420ms var(--forge-spring) both;
+  }
+
+  .sentry-live-dot {
+    position: relative;
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.46);
+    animation: sentry-pulse 1.8s ease-in-out infinite;
+  }
+
+  .sentry-pressable {
+    transform: translateZ(0);
+    transition:
+      transform 180ms var(--forge-spring),
+      background-color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .sentry-pressable:hover {
+    transform: translateY(-1px);
+  }
+
+  .sentry-pressable:active {
+    transform: translateY(0) scale(0.985);
+  }
+
+  .sentry-resize-handle {
+    width: 10px;
+    background: transparent;
+  }
+
+  .sentry-resize-handle::before {
+    position: absolute;
+    inset-block: 16px;
+    left: 50%;
+    width: 1px;
+    content: "";
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    transition:
+      width 180ms ease,
+      background 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .sentry-resize-handle:hover::before,
+  .sentry-resize-handle:focus-visible::before {
+    width: 2px;
+    background: hsl(var(--primary));
+  }
+
+  .sentry-map-stage .leaflet-container {
+    filter: saturate(1.08) contrast(1.05);
+  }
+
+  .sentry-map-stage .leaflet-control-zoom,
+  .sentry-map-stage .leaflet-control-attribution {
+    border: 0.5px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 10px !important;
+    overflow: hidden;
+    background: rgba(12, 12, 15, 0.64) !important;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.24) !important;
+    backdrop-filter: blur(28px) saturate(180%);
+  }
+}
+
+@keyframes sentry-spring-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sentry-file-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sentry-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.42);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(255, 107, 53, 0);
   }
 }
 
 /* Map marker pulse used by Leaflet divIcon. */
 @keyframes ignis-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(1.08); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.08);
+  }
 }
 
 /* Override Leaflet's default white box on divIcon so our custom markers

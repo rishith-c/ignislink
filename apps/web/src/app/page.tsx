@@ -25,23 +25,13 @@ const PUBLIC_INCIDENTS = FIXTURE_INCIDENTS.filter(
   (i) => i.verification === "EMERGING" || i.verification === "CREWS_ACTIVE",
 );
 
-const CONUS = { minLon: -125, maxLon: -66, minLat: 24, maxLat: 50 };
-function project(lat: number, lon: number) {
-  return {
-    x: ((lon - CONUS.minLon) / (CONUS.maxLon - CONUS.minLon)) * 100,
-    y: (1 - (lat - CONUS.minLat) / (CONUS.maxLat - CONUS.minLat)) * 100,
-  };
-}
-
 function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -88,19 +78,19 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-card/40 backdrop-blur">
+    <main className="bg-background text-foreground min-h-screen">
+      <header className="border-border bg-card/40 border-b backdrop-blur">
         <div className="container mx-auto flex items-center gap-3 px-4 py-3">
-          <Flame className="h-6 w-6 text-primary animate-flicker" aria-hidden />
+          <Flame className="text-primary animate-flicker h-6 w-6" aria-hidden />
           <div>
             <h1 className="text-base font-semibold tracking-tight">SENTRY</h1>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-muted-foreground text-[11px]">
               Public situational awareness · verified active fires only
             </p>
           </div>
           <Link
             href="/console"
-            className="ml-auto rounded border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+            className="border-border bg-card text-muted-foreground hover:text-foreground ml-auto rounded border px-3 py-1.5 text-xs transition"
           >
             Dispatcher console →
           </Link>
@@ -113,36 +103,34 @@ export default function HomePage() {
             <h2 className="text-balance text-3xl font-semibold leading-tight">
               Active wildfire detections, last 24 hours
             </h2>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              {PUBLIC_INCIDENTS.length} verified active incident{PUBLIC_INCIDENTS.length === 1 ? "" : "s"}{" "}
-              shown. Satellite-only unconfirmed hotspots, prescribed burns, and registered industrial
-              flares are not displayed on the public map.
+            <p className="text-muted-foreground max-w-2xl text-sm">
+              {PUBLIC_INCIDENTS.length} verified active incident
+              {PUBLIC_INCIDENTS.length === 1 ? "" : "s"} shown. Satellite-only unconfirmed hotspots,
+              prescribed burns, and registered industrial flares are not displayed on the public
+              map.
             </p>
           </div>
 
-          <form
-            onSubmit={handleSearch}
-            className="flex flex-col gap-2 sm:flex-row sm:items-center"
-          >
-            <div className="flex flex-1 items-center gap-2 rounded border border-border bg-background px-3">
-              <Search className="h-4 w-4 text-muted-foreground" />
+          <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="border-border bg-background flex flex-1 items-center gap-2 rounded border px-3">
+              <Search className="text-muted-foreground h-4 w-4" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search county, neighborhood, or state code (CA, OR, NV)…"
-                className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
+                className="placeholder:text-muted-foreground w-full bg-transparent py-2 text-sm outline-none"
               />
             </div>
             <button
               type="submit"
-              className="rounded bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-orange-500"
+              className="bg-primary text-primary-foreground rounded px-3 py-2 text-sm font-medium hover:bg-orange-500"
             >
               Find
             </button>
             <button
               type="button"
               onClick={handleGeolocate}
-              className="inline-flex items-center justify-center gap-1.5 rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
+              className="border-border bg-card hover:bg-card/80 inline-flex items-center justify-center gap-1.5 rounded border px-3 py-2 text-sm"
             >
               <MapPin className="h-3.5 w-3.5" /> Near me
             </button>
@@ -169,23 +157,25 @@ export default function HomePage() {
               initialZoom={center ? 7 : 5}
               height={520}
             />
-            <div className="pointer-events-none absolute left-3 top-3 z-[402] rounded border border-border bg-card/80 px-2.5 py-1.5 text-[10px] backdrop-blur">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <span className="inline-block h-2 w-2 rounded-full bg-orange-500" /> Reported by news outlets
+            <div className="border-border bg-card/80 pointer-events-none absolute left-3 top-3 z-[402] rounded border px-2.5 py-1.5 text-[10px] backdrop-blur">
+              <div className="text-muted-foreground flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full bg-orange-500" /> Reported by
+                news outlets
               </div>
-              <div className="mt-1 flex items-center gap-2 text-muted-foreground">
+              <div className="text-muted-foreground mt-1 flex items-center gap-2">
                 <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" /> Crews on scene
               </div>
-              <div className="mt-1 flex items-center gap-2 text-muted-foreground">
-                <span className="inline-block h-2 w-2 animate-flicker rounded-full bg-orange-500" /> Embers drift live wind × fuel
+              <div className="text-muted-foreground mt-1 flex items-center gap-2">
+                <span className="animate-flicker inline-block h-2 w-2 rounded-full bg-orange-500" />{" "}
+                Embers drift live wind × fuel
               </div>
             </div>
           </div>
 
           <div className="rounded border border-orange-900/30 bg-orange-950/20 px-3 py-2 text-xs text-orange-200/80">
             <strong>SENTRY is a situational tool, not an evacuation authority.</strong> For
-            evacuation orders, follow your local Authority Having Jurisdiction (AHJ) — Cal Fire, county
-            OES, or municipal fire department.
+            evacuation orders, follow your local Authority Having Jurisdiction (AHJ) — Cal Fire,
+            county OES, or municipal fire department.
           </div>
         </div>
 
@@ -195,11 +185,15 @@ export default function HomePage() {
           </h3>
           <ul className="space-y-2">
             {sortedNearMe.map((i) => (
-              <PublicIncidentCard key={i.id} incident={i} distKm={(i as FixtureIncident & { distKm?: number }).distKm} />
+              <PublicIncidentCard
+                key={i.id}
+                incident={i}
+                distKm={(i as FixtureIncident & { distKm?: number }).distKm}
+              />
             ))}
           </ul>
-          <div className="rounded border border-border bg-card/40 p-3 text-[11px] text-muted-foreground">
-            <div className="mb-1 font-medium text-foreground">What you&apos;re seeing</div>
+          <div className="border-border bg-card/40 text-muted-foreground rounded border p-3 text-[11px]">
+            <div className="text-foreground mb-1 font-medium">What you&apos;re seeing</div>
             Each dot represents a satellite-detected hotspot that has been corroborated by news
             reports or scanner traffic in the last 60 minutes. Locations are rounded for civilian
             view — exact coordinates and station-level detail are restricted to authorized
@@ -208,11 +202,9 @@ export default function HomePage() {
         </aside>
       </section>
 
-      <footer className="border-t border-border">
-        <div className="container mx-auto flex flex-wrap items-center justify-between gap-3 px-4 py-4 text-xs text-muted-foreground">
-          <span>
-            Data sources: NASA FIRMS · NOAA HRRR · USGS LANDFIRE · Open-Meteo · Mapbox
-          </span>
+      <footer className="border-border border-t">
+        <div className="text-muted-foreground container mx-auto flex flex-wrap items-center justify-between gap-3 px-4 py-4 text-xs">
+          <span>Data sources: NASA FIRMS · NOAA HRRR · USGS LANDFIRE · Open-Meteo · Mapbox</span>
           <span suppressHydrationWarning>v0 · feed live · 1m ago</span>
         </div>
       </footer>
@@ -220,13 +212,7 @@ export default function HomePage() {
   );
 }
 
-function PublicIncidentCard({
-  incident,
-  distKm,
-}: {
-  incident: FixtureIncident;
-  distKm?: number;
-}) {
+function PublicIncidentCard({ incident, distKm }: { incident: FixtureIncident; distKm?: number }) {
   const verifLabel =
     incident.verification === "EMERGING" ? "Reported by news outlets" : "Crews on scene";
   const dot = incident.verification === "EMERGING" ? "bg-orange-500" : "bg-emerald-500";
@@ -234,7 +220,7 @@ function PublicIncidentCard({
     <motion.li
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded border border-border bg-card/60 p-3"
+      className="border-border bg-card/60 rounded border p-3"
     >
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5 text-xs">
@@ -242,13 +228,13 @@ function PublicIncidentCard({
           {verifLabel}
         </span>
         {typeof distKm === "number" && (
-          <span className="text-[10px] text-muted-foreground">{distKm.toFixed(0)} km away</span>
+          <span className="text-muted-foreground text-[10px]">{distKm.toFixed(0)} km away</span>
         )}
       </div>
       <div className="mt-1.5 text-sm font-medium">
         {incident.neighborhood}, {incident.county} {incident.state}
       </div>
-      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+      <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
         <span className="inline-flex items-center gap-1">
           <Clock className="h-3 w-3" /> {formatAge(incident.ageMinutes)}
         </span>

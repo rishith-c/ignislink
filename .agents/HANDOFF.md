@@ -107,3 +107,58 @@
 - Conflict resolution: skipped obsolete standalone PRD/coord commits already superseded by PR #16, preserved the integrated PRD from `main`, kept both agents' historical HANDOFF/whoami entries, and updated BOARD to reflect PRD complete + PR #3 in review.
 - Verification on rebased branch: `pnpm test` pass (7/7), `pnpm typecheck` pass (7/7), `pnpm build` pass (4/4). Build warnings remain non-fatal and localized to Agent A web files.
 - Next Codex-owned PR after PR #3: Stage 0 backend/infra scaffold only (`apps/api-py`, `apps/api-node`, `apps/worker`, `infra`, CI), with codegen drift and health/readiness tests first.
+
+## 2026-05-04T22:52:29Z - codex
+
+- User requested implementation of the provided Forge design handoff (`Forge.html`) into the SENTRY web app.
+- Cross-domain note: Codex is touching Agent A-owned frontend files on `feat/web/forge-sentry-ui` because the user explicitly requested this UI pass.
+- Source design read: `forge/README.md`, `forge/chats/chat1.md`, `forge/project/Forge.html`, imported React files, and Forge style skills. Key translation targets are macOS liquid-glass chrome, warm orange accent, mesh background, spring entry motion, resizable split panes, live/glowing status dots, and polished translucent panels.
+
+## 2026-05-04T23:07:52Z - codex
+
+- Forge/SENTRY console UI pass implemented on `feat/web/forge-sentry-ui`.
+- Frontend changes: `/console` now uses a macOS-style glass window shell, Forge orange/material tokens, warm/dark mesh background, resizable shadcn panels, shadcn `Button`/`Badge`/`Input`/`Sheet` controls, polished map overlays, selected-incident glass inspector, and shadcn-powered Leaflet layer toggles.
+- Validation: `pnpm --filter @ignislink/web typecheck` pass, `pnpm --filter @ignislink/web test` pass, `pnpm --filter @ignislink/web build` pass with no warnings after cleanup. Local smoke check: `curl -I http://localhost:3001/console` returned `200 OK`.
+- Handoff for Agent A: please review frontend visuals and interaction details before merge; Codex intentionally limited this pass to the user-requested design implementation and did not alter ML/model training behavior.
+
+## 2026-05-04T23:09:28Z - codex
+
+- Draft PR opened for Forge/SENTRY console UI pass: https://github.com/rishith-c/sentry_max/pull/19
+- Branch pushed: `feat/web/forge-sentry-ui`.
+- PR remains draft/cross-domain with `needs-handoff`; Agent A should review before merge.
+
+## 2026-05-04T23:16:24Z - codex
+
+- User screenshot feedback addressed on `feat/web/forge-sentry-ui`: removed fake desktop traffic-light chrome and outer margins, made `/console` a true full-screen app, moved map terrain/layer controls below the map title overlay to prevent collisions, removed the large cursor spotlight that obscured terrain, and converted the detail sheet to a flush right operations drawer.
+- Added `GET /api/incidents` in the web app to enrich incident wind/humidity/temperature/10-day precip/fuel-dryness from Open-Meteo at runtime, with fixture fallback only when the live weather call fails. The console now surfaces the weather provenance instead of presenting hardcoded wind as live.
+- Validation repeated: `pnpm --filter @ignislink/web typecheck`, `pnpm --filter @ignislink/web test`, `pnpm --filter @ignislink/web build`, `curl -I http://localhost:3001/console`, and `curl http://localhost:3001/api/incidents` all pass/respond. Note: production-quality real-data ML training is still blocked by the Stage 3 WebDataset reader/shard builder stub in `ml/training/dataset.py`; this UI pass does not pretend the smoke-trained model is production trained.
+
+## 2026-05-04T23:53:43Z - codex
+
+- User requested a clean localhost restart and a stronger model run. Codex stopped the existing localhost listeners, started PR #19 from a clean worktree at `/Users/rishith/ignislink-forge-ui`, and verified `http://localhost:3000/console` plus `GET /api/incidents`.
+- Added explicit MPS/GPU accelerator support to `ml/training/train.py` while preserving CPU as the default for deterministic tests.
+- Trained a bounded local fire-spread candidate on Apple MPS: 5.1M-parameter U-Net+ConvLSTM, 3 epochs, 24 synthetic Rothermel-supervised training samples, 8 validation samples, 48x48 grid, best checkpoint `ml/checkpoints/prod-candidate-bounded/fire-spread-smoke-epoch=02-val_loss=1.289.ckpt`, elapsed 471.9s.
+- Exported and verified `ml/models/fire-spread-prod-candidate-bounded.onnx`; ONNXRuntime max delta vs PyTorch was `1.19e-07`.
+- Evidence: `python3 -m pytest ml/__tests__/test_smoke_train.py ml/__tests__/test_export_onnx.py` passed (4 tests). This is still not a real-data production model because `WebDatasetShardDataset` and FIRMS/HRRR/LANDFIRE/SRTM shard building remain stubbed in Stage 3.
+
+## 2026-05-01T00:00:00Z - claude (hackathon Agent 1 / data-infra)
+
+- Shipped `infra/docker-compose.yml` (Kafka KRaft 3.7, Postgres 16+PostGIS 3.4+TimescaleDB 2.15 via `timescale/timescaledb-ha:pg16`, Redis 7, MinIO, Spark 3.5 master+worker), `sentry-net` bridge, named volumes, healthchecks on Kafka/Postgres/Redis/MinIO, resource limits.
+- `infra/sql/0001_init.sql` schema: detections + earthquake_events + gauge_observations are TimescaleDB hypertables with PostGIS GIST + time DESC indexes; predictions/dispatches/audit_log fully indexed.
+- `infra/sql/0002_seed.sql` seeds the six fixtures (IG-2K91, IG-7HQ4, IG-3MX2, IG-5KP8, IG-8LR3, IG-9NB7) with deterministic UUIDs, t+60/360/1440 buffered prediction cones for the three active incidents, four dispatches, three USGS earthquakes, and two NWIS gauges.
+- `infra/kafka/topics.sh` (run automatically by the `kafka-init` container) creates `detections.created`, `detections.verified`, `predictions.ready`, `dispatches.sent`, `earthquakes.observed`, `gauges.stage` with hazard-tuned partitions/retention.
+- Blockers: Docker not installed on the build host, so I validated with `python3 yaml.safe_load` + `bash -n` only — `docker compose config` / `up -d postgres` not exercised. README documents `docker compose -f infra/docker-compose.yml up -d && sleep 30` as the canonical bring-up.
+
+## 2026-05-01T00:30:00Z - claude (hackathon Agent 4 / frontend-wire)
+
+- Wired the frontend to the FastAPI backend on `feat/hackathon/frontend-wire` (worktree `/Users/rishith/ignislink-forge-ui`, branched off `feat/web/forge-sentry-ui`).
+- New typed client at `apps/web/src/lib/api/client.ts` — `getDetections`, `postPredictSpread`, `postDispatch`, `getEarthquakes`, `getFloodGauges`. Single network retry, 5s timeout, `ApiResult<T>` envelope (`{data} | {error}`) so callers can decide on fallback. Configurable base URL via `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:8000`).
+- TanStack Query hooks at `apps/web/src/lib/api/hooks.ts` — `useDetections`, `useEarthquakes`, `useFloodGauges` with 30s refetch and graceful fixture fallback in the queryFn so the console keeps rendering when the backend is down.
+- SSE bridge at `apps/web/src/lib/api/sse.ts` — `useDetectionsStream` opens `EventSource(/stream/detections)` and reports `connecting | open | fallback | closed`. Console header now shows a LIVE pulse pill (green=open, amber=poll-fallback, zinc=connecting, red=offline). 4s open-deadline before showing fallback.
+- `apps/web/src/app/api/incidents/route.ts` now proxies `/detections` from the FastAPI backend first; falls through to the existing Open-Meteo-enriched fixture path when the backend is unreachable. Provenance metadata reflects which path was used.
+- `apps/web/src/app/console/page.tsx` keeps the existing fixture seed for SSR but layers a 30s `/api/incidents` poll plus SSE merge-by-id append. The Dispatch button now `POST`s `/dispatch/{id}` and toasts via `sonner` — "Dispatch sent — ETA X min" on success, "Dispatch failed: …" on failure. Toaster mounted in a new `apps/web/src/app/providers.tsx` that also hosts the QueryClient.
+- `EarthquakeMap` and `FloodMap` accept an optional `viaBackend?: boolean` prop; default `false` preserves direct USGS fetch. When true they hit `/earthquakes` / `/floods/gauges?state=ca` and gracefully fall back to USGS direct on backend failure.
+- Tests: `apps/web/src/lib/api/__tests__/client.test.ts` (12 vitest cases) covers happy path, single retry, 4xx no-retry, URL encoding, JSON content-type, query-param round-trip. `pnpm --filter @ignislink/web test` → 14/14 pass. `pnpm --filter @ignislink/web typecheck` and `pnpm --filter @ignislink/web build` both clean (only pre-existing lint warnings in unrelated files).
+- `.env.local.example` documents `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
+- Constraint compliance: this PR touches only `apps/web/`. The `apps/api-py/`, `apps/worker/`, `infra/`, `ml/`, and `packages/` modifications visible in `git status` are from Agents 1–3 working in parallel and are NOT in this commit.
+- Open items for the demo path: when Agent 2's `/stream/detections` SSE endpoint isn't live yet, the console transparently falls back to 30s polling — the LIVE pill turns amber. Dispatch toasts will surface a clear "backend unreachable" error instead of failing silently.

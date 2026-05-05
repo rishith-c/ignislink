@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { UsMap, type MapHotspot } from "./UsMap";
 import { FireParticles, type ParticleSource } from "./FireParticles";
 import { ALBERS_WIDTH, ALBERS_HEIGHT, projectLonLat } from "./projection";
@@ -46,9 +46,7 @@ export function IgnisMap({
           windDirDeg: h.windDirDeg ?? 0,
           windSpeedMs: h.windSpeedMs ?? 0,
           active:
-            h.status === "EMERGING" ||
-            h.status === "UNREPORTED" ||
-            h.status === "CREWS_ACTIVE",
+            h.status === "EMERGING" || h.status === "UNREPORTED" || h.status === "CREWS_ACTIVE",
           color: COLOR_BY_STATUS[h.status],
         };
       })
@@ -58,8 +56,7 @@ export function IgnisMap({
   return (
     <div
       className={
-        className ??
-        "relative w-full overflow-hidden rounded-lg border border-border bg-zinc-950"
+        className ?? "border-border relative w-full overflow-hidden rounded-lg border bg-zinc-950"
       }
       style={{ aspectRatio: `${ALBERS_WIDTH} / ${ALBERS_HEIGHT}` }}
     >
