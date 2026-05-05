@@ -274,8 +274,13 @@ function AppChrome({
   return (
     <header className="flex h-[60px] shrink-0 items-center gap-4 border-b border-white/10 bg-black/[0.28] px-5 backdrop-blur-md">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Flame className="h-5 w-5" aria-hidden />
+        {/* Logo — concentric ring + dot flame, inspired by rishith-c/sentry's
+            threat-band visual language. Not a sharp square. */}
+        <span className="relative flex h-9 w-9 items-center justify-center" aria-hidden>
+          <span className="absolute inset-0 rounded-full bg-primary/10 ring-1 ring-primary/40" />
+          <span className="absolute inset-1 rounded-full bg-primary/15 ring-1 ring-primary/60" />
+          <span className="absolute inset-[6px] rounded-full bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.55)]" />
+          <Flame className="relative h-4 w-4 text-primary-foreground" aria-hidden />
         </span>
         <div className="min-w-0">
           <div className="flex items-center gap-2">

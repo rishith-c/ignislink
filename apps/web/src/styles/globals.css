@@ -24,30 +24,38 @@
     --forge-glass-dark: rgba(20, 18, 22, 0.58);
     --forge-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-    /* Staple-derived neutral palette (rishith-c/staple, shadcn new-york).
-       Flat, monochrome, Linear-clone — no color, square corners at the
-       layout level, small rounded only on chips/buttons. Light fallback;
-       dark is the default for the dispatcher console. */
+    /* SENTRY palette — synthesized from rishith-c/sentry (deep blue-black
+       surfaces, threat-orange accent #f97316) + rishith-c/staple (flat
+       Linear-clone layout, near-square radius). Light fallback; dark is
+       the default for the dispatcher console. */
     --background: 0 0% 100%;
-    --foreground: 0 0% 14.5%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 14.5%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 14.5%;
-    --primary: 0 0% 20.5%;
-    --primary-foreground: 0 0% 98%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 24 95% 53%;             /* #f97316 — sentry threat-orange */
+    --primary-foreground: 222 47% 11%;
     --secondary: 0 0% 97%;
-    --secondary-foreground: 0 0% 20.5%;
+    --secondary-foreground: 222 47% 11%;
     --muted: 0 0% 97%;
-    --muted-foreground: 0 0% 55.6%;
+    --muted-foreground: 215 16% 47%;
     --accent: 0 0% 97%;
-    --accent-foreground: 0 0% 20.5%;
-    --destructive: 25 84% 51.4%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 92.2%;
-    --input: 0 0% 92.2%;
-    --ring: 0 0% 70%;
-    --radius: 0;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 24 95% 53%;
+    --radius: 0.25rem;
+
+    /* Threat-color tokens from rishith-c/sentry's DESIGN.md — used by
+       severity badges + ring indicators ONLY (never for backgrounds). */
+    --threat-green: 158 80% 39%;       /* #10b981 */
+    --threat-amber: 38 92% 50%;        /* #f59e0b */
+    --threat-orange: 24 95% 53%;       /* #f97316 */
+    --threat-red: 0 84% 60%;           /* #ef4444 */
+    --threat-purple: 271 91% 65%;      /* #a855f7 */
 
     /* Verification badge colors. */
     --verification-unreported: 240 5% 65%;
@@ -64,26 +72,34 @@
   }
 
   .dark {
-    /* Staple-derived neutral dark — pure black background, neutral grays. */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 92%;
-    --primary-foreground: 0 0% 14.5%;
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 70%;
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 25 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
-    --ring: 0 0% 35%;
+    /* sentry-style deep blue-black surfaces (rishith-c/sentry DESIGN.md
+       color-bg #020617, surface #0e1223, border #1e2d40) with threat-
+       orange as the primary accent and the same flat staple radius. */
+    --background: 222 47% 4%;          /* #020617 */
+    --foreground: 213 31% 95%;         /* #f0f4f8 */
+    --card: 224 32% 9%;                /* #0e1223 */
+    --card-foreground: 213 31% 95%;
+    --popover: 224 32% 9%;
+    --popover-foreground: 213 31% 95%;
+    --primary: 24 95% 53%;             /* #f97316 — threat-orange accent */
+    --primary-foreground: 222 47% 4%;
+    --secondary: 217 33% 13%;
+    --secondary-foreground: 213 31% 95%;
+    --muted: 217 33% 13%;
+    --muted-foreground: 215 16% 56%;   /* #64748b */
+    --accent: 217 33% 13%;
+    --accent-foreground: 213 31% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 213 31% 95%;
+    --border: 215 28% 18%;             /* #1e2d40 */
+    --input: 215 28% 18%;
+    --ring: 24 95% 53%;
+
+    --threat-green: 158 80% 39%;
+    --threat-amber: 38 92% 50%;
+    --threat-orange: 24 95% 53%;
+    --threat-red: 0 84% 60%;
+    --threat-purple: 271 91% 65%;
 
     --verification-unreported: 240 5% 50%;
     --verification-emerging: 24 95% 60%;
@@ -130,11 +146,11 @@
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    background: #ffffff;
+    background: hsl(var(--background));
   }
 
   .dark .sentry-forge-bg {
-    background: #000000;
+    background: hsl(var(--background));
   }
 
   /* Grid overlay removed — pure black background per design pass. */
