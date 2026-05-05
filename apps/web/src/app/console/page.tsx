@@ -295,9 +295,6 @@ function AppChrome({
         <Stat label="Active" value={activeCount} tone="emerald" icon={<Activity />} />
         <Stat label="Emerging" value={emergingCount} tone="orange" icon={<AlertTriangle />} />
         <Stat label="24h Total" value={totalCount} tone="zinc" icon={<Radar />} />
-        <Badge className="ml-1 gap-1.5 border-white/10 bg-white/[0.08] px-2.5 py-1 text-[11px] font-medium text-zinc-300 shadow-none">
-          <CommandIcon className="h-3.5 w-3.5" />/ command
-        </Badge>
       </div>
     </header>
   );

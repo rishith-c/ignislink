@@ -52,13 +52,13 @@ interface GaugeRow {
   latestTime: string | null;
 }
 
-// Pull stage observations from the USGS Instantaneous-Values service. We
-// scope by California bounding box (the SENTRY demo region) to keep the
-// payload small. Parameter 00065 = gauge height in feet.
-const USGS_BBOX = "-124.5,32.5,-114.0,42.0"; // CA west→east, south→north
+// Pull stage observations from the USGS Instantaneous-Values service.
+// USGS caps bbox queries to ~3 degrees, so we filter by `stateCd=ca`
+// instead — covers the whole CA demo region without the size limit.
+// Parameter 00065 = gauge height (ft).
 const USGS_URL =
   `https://waterservices.usgs.gov/nwis/iv/?format=json` +
-  `&bBox=${USGS_BBOX}` +
+  `&stateCd=ca` +
   `&parameterCd=00065` +
   `&siteStatus=active` +
   `&period=PT24H`;

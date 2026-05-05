@@ -127,36 +127,14 @@
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    background:
-      radial-gradient(circle at 18% 18%, rgba(255, 211, 176, 0.82), transparent 30%),
-      radial-gradient(circle at 78% 12%, rgba(199, 210, 254, 0.62), transparent 28%),
-      radial-gradient(circle at 52% 78%, rgba(255, 183, 197, 0.46), transparent 36%),
-      radial-gradient(circle at 82% 82%, rgba(252, 231, 162, 0.44), transparent 30%),
-      linear-gradient(135deg, var(--forge-warm-bg), #fbf8f3 52%, #efe9e0);
+    background: #ffffff;
   }
 
   .dark .sentry-forge-bg {
-    background:
-      radial-gradient(circle at 18% 18%, rgba(255, 107, 53, 0.22), transparent 32%),
-      radial-gradient(circle at 78% 12%, rgba(139, 92, 246, 0.16), transparent 28%),
-      radial-gradient(circle at 48% 80%, rgba(244, 114, 182, 0.12), transparent 38%),
-      radial-gradient(circle at 86% 76%, rgba(252, 211, 77, 0.12), transparent 30%),
-      linear-gradient(135deg, #070609, var(--forge-dark-bg) 54%, #151116);
+    background: #000000;
   }
 
-  .sentry-forge-bg::after {
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    content: "";
-    opacity: 0.12;
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-    background-size: 42px 42px;
-    mask-image: radial-gradient(circle at 50% 48%, black, transparent 72%);
-  }
+  /* Grid overlay removed — pure black background per design pass. */
 
   .sentry-window {
     overflow: hidden;
@@ -255,9 +233,8 @@
 
   .sentry-resize-handle:hover::before,
   .sentry-resize-handle:focus-visible::before {
-    width: 3px;
-    background: linear-gradient(var(--forge-orange), var(--forge-orange-light));
-    box-shadow: 0 0 18px rgba(255, 107, 53, 0.38);
+    width: 2px;
+    background: hsl(var(--primary));
   }
 
   .sentry-map-stage .leaflet-container {
