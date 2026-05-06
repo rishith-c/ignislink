@@ -83,6 +83,8 @@ const FireSimulator3D = dynamic(
 type HazardKind = "fire" | "earthquake" | "flood";
 type ViewMode = "2d" | "3d";
 import { IntelPanel } from "@/components/console/IntelPanel";
+import { EarthquakeSidebar } from "@/components/console/EarthquakeSidebar";
+import { FloodSidebar } from "@/components/console/FloodSidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -157,6 +159,11 @@ export default function ConsolePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "emerging">("active");
   const [search, setSearch] = useState("");
+  // Hazard state lives at the top so both MapPanel AND the right-sidebar can
+  // react to it. When hazard ≠ "fire" the sidebar swaps the fire incident
+  // queue for a hazard-specific list.
+  const [hazard, setHazard] = useState<HazardKind>("fire");
+  const [view, setView] = useState<ViewMode>("2d");
 
   // 30s poll fallback — even when SSE is open we keep polling so the queue
   // re-syncs after SSE reconnects. The /api/incidents proxy itself prefers
@@ -276,19 +283,31 @@ export default function ConsolePage() {
               selectedId={selectedId}
               selected={selected}
               onSelect={setSelectedId}
+              hazard={hazard}
+              setHazard={setHazard}
+              view={view}
+              setView={setView}
             />
           </ResizablePanel>
           <ResizableHandle withHandle className="sentry-resize-handle border-0 bg-transparent" />
           <ResizablePanel defaultSize={31} minSize={23} maxSize={40}>
             <aside className="flex h-full min-h-0 flex-col border-l border-white/10">
-              <QueueHeader
-                filter={filter}
-                onFilter={setFilter}
-                search={search}
-                onSearch={setSearch}
-                count={filtered.length}
-              />
-              <Queue incidents={filtered} selectedId={selectedId} onSelect={setSelectedId} />
+              {hazard === "fire" ? (
+                <>
+                  <QueueHeader
+                    filter={filter}
+                    onFilter={setFilter}
+                    search={search}
+                    onSearch={setSearch}
+                    count={filtered.length}
+                  />
+                  <Queue incidents={filtered} selectedId={selectedId} onSelect={setSelectedId} />
+                </>
+              ) : hazard === "earthquake" ? (
+                <EarthquakeSidebar />
+              ) : (
+                <FloodSidebar />
+              )}
             </aside>
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -606,14 +625,20 @@ function MapPanel({
   selectedId,
   selected,
   onSelect,
+  hazard,
+  setHazard,
+  view,
+  setView,
 }: {
   incidents: ConsoleIncident[];
   selectedId: string | null;
   selected: ConsoleIncident | null;
   onSelect: (id: string) => void;
+  hazard: HazardKind;
+  setHazard: (h: HazardKind) => void;
+  view: ViewMode;
+  setView: (v: ViewMode) => void;
 }) {
-  const [hazard, setHazard] = useState<HazardKind>("fire");
-  const [view, setView] = useState<ViewMode>("2d");
   // 3D auto-picks the first incident if none is selected, so the toggle is
   // never dead. We also bias the 3D scene to the highest-FRP incident when
   // there's no explicit selection (it's the most interesting visualisation).
