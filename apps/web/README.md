@@ -1,4 +1,4 @@
-# `@ignislink/web`
+# `@sentry-max/web`
 
 Dispatcher console + public awareness map + admin, in one Next.js app.
 
@@ -7,7 +7,7 @@ Dispatcher console + public awareness map + admin, in one Next.js app.
 ```bash
 # from the repo root
 pnpm install
-pnpm --filter @ignislink/web dev
+pnpm --filter @sentry-max/web dev
 ```
 
 The dev server runs on `http://localhost:3000` with Turbopack. Routes:
@@ -57,6 +57,6 @@ src/
 
 ## Testing
 
-- **Vitest** for unit tests (`pnpm --filter @ignislink/web test`).
+- **Vitest** for unit tests (`pnpm --filter @sentry-max/web test`).
 - **Playwright** for the console critical path — receive detection → verify →
   dispatch → audit. Lives in `e2e/` (added in Stage 5).

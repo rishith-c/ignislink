@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from ignislink_api.main import create_app
+from sentry_max_api.main import create_app
 
 
 def test_health_reports_liveness() -> None:
@@ -9,4 +9,4 @@ def test_health_reports_liveness() -> None:
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "ignislink-api-py"}
+    assert response.json() == {"status": "ok", "service": "sentry-max-api-py"}

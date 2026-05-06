@@ -1,42 +1,270 @@
+# SENTRY hackathon data infrastructure stack.
+#
+# Brings up Kafka (KRaft), Postgres+PostGIS+TimescaleDB, Redis, MinIO, and Spark
+# (master + 1 worker) on a shared bridge network with named volumes for
+# persistence. Designed for single-host local dev / hackathon demos.
+#
+#   docker compose -f infra/docker-compose.yml up -d
+#   sleep 30 && docker compose -f infra/docker-compose.yml ps
+#
+# Migrations in ./sql are auto-applied by the postgres container on first boot.
+
+name: sentry-hackathon
+
+networks:
+  sentry-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+  minio-data:
+  spark-events:
+
 services:
+  # ---------------------------------------------------------------------------
+  # Postgres 16 + PostGIS 3.4 + TimescaleDB 2.15 (timescale/timescaledb-ha bundles
+  # both extensions on top of pg16). Migrations under ./sql are mounted into
+  # /docker-entrypoint-initdb.d and run on first boot in lexical order.
+  # ---------------------------------------------------------------------------
   postgres:
     image: timescale/timescaledb-ha:pg16
+    container_name: sentry-postgres
     environment:
-      POSTGRES_DB: ignislink
-      POSTGRES_USER: ignislink
-      POSTGRES_PASSWORD: ignislink
+      POSTGRES_DB: sentry
+      POSTGRES_USER: sentry
+      POSTGRES_PASSWORD: sentry
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/home/postgres/pgdata/data
-      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - sentry-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ignislink -d ignislink"]
+      test: ["CMD-SHELL", "pg_isready -U sentry -d sentry"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
 
+  # ---------------------------------------------------------------------------
+  # Redis 7 — cache + pub/sub. Append-only on for durable demo state.
+  # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
+    container_name: sentry-redis
     command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
+    networks:
+      - sentry-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
 
+  # ---------------------------------------------------------------------------
+  # Kafka 3.7 in KRaft mode (no Zookeeper). Single-node broker+controller for
+  # local dev. Listens on 9092 for clients on the host and 9093 for the
+  # internal controller quorum.
+  # ---------------------------------------------------------------------------
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: sentry-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # KRaft node identity
+      KAFKA_CFG_NODE_ID: "1"
+      KAFKA_CFG_PROCESS_ROLES: "broker,controller"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      # Listeners — PLAINTEXT for clients, CONTROLLER for the quorum
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,EXTERNAL://localhost:9092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      # Single-broker friendly defaults
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    volumes:
+      - kafka-data:/bitnami/kafka
+    networks:
+      - sentry-net
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1536m
+
+  # ---------------------------------------------------------------------------
+  # Companion init container that creates the topic catalog after the broker
+  # is healthy. Idempotent — safe to re-run.
+  # ---------------------------------------------------------------------------
+  kafka-init:
+    image: bitnami/kafka:3.7
+    container_name: sentry-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "/scripts/topics.sh"]
+    environment:
+      KAFKA_BOOTSTRAP: "kafka:9092"
+    volumes:
+      - ./kafka:/scripts:ro
+    networks:
+      - sentry-net
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible object store for ML artifacts (model weights,
+  # spread-prediction rasters, training shards).
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    container_name: sentry-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: sentry
+      MINIO_ROOT_PASSWORD: sentry-dev-password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - sentry-net
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+
+  # Bootstrap a default bucket layout: ml-artifacts, raster-cache, training-shards
+  minio-init:
+    image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+    container_name: sentry-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 sentry sentry-dev-password &&
+      mc mb --ignore-existing local/ml-artifacts &&
+      mc mb --ignore-existing local/raster-cache &&
+      mc mb --ignore-existing local/training-shards &&
+      echo 'minio buckets ready'
+      "
+    networks:
+      - sentry-net
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # Spark 3.5 master + 1 worker. The master exposes its UI on :8080 and accepts
+  # job submissions on :7077. Wire your Python jobs at spark://localhost:7077.
+  # ---------------------------------------------------------------------------
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: sentry-spark-master
+    environment:
+      SPARK_MODE: master
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
+      SPARK_USER: spark
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - spark-events:/opt/bitnami/spark/spark-events
+      # Mount the worker's PySpark job directory + shared geo/common helpers
+      # so spark-submit can run them straight from the repo without a rebuild.
+      - ../apps/worker/src/spark:/opt/jobs:ro
+      - ../apps/worker/src/common:/opt/jobs/common:ro
+    networks:
+      - sentry-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1536m
+
+  spark-worker:
+    image: bitnami/spark:3.5
+    container_name: sentry-spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_MEMORY: 2g
+      SPARK_WORKER_CORES: 2
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
+      SPARK_USER: spark
+    volumes:
+      - spark-events:/opt/bitnami/spark/spark-events
+      - ../apps/worker/src/spark:/opt/jobs:ro
+      - ../apps/worker/src/common:/opt/jobs/common:ro
+    networks:
+      - sentry-net
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2560m
+
+  # ===========================================================================
+  # === BEGIN AGENT-2 (api-py) ADDITIONS ======================================
+  # FastAPI backend that serves predictions, dispatch decisions, and ingests
+  # detections. Owned by Agent 2 / feat/hackathon/backend. Safe to merge into
+  # Agent 1's data-infra branch — no overlapping keys above this fence.
+  # ===========================================================================
   api-py:
     build:
       context: ..
       dockerfile: apps/api-py/Dockerfile
+    container_name: sentry-api-py
     environment:
-      DATABASE_URL: postgresql+asyncpg://ignislink:ignislink@postgres:5432/ignislink
+      DATABASE_URL: postgresql+asyncpg://sentry:sentry@postgres:5432/sentry
       REDIS_URL: redis://redis:6379/0
-      REQUIRE_DEPENDENCIES: "true"
+      KAFKA_BOOTSTRAP: kafka:9092
+      ONNX_MODEL_PATH: /app/ml/models/fire-spread-prod-candidate-bounded.onnx
+      MODEL_VERSION: fire-spread-prod-candidate-bounded
+      REQUIRE_DEPENDENCIES: "false"
     ports:
       - "8000:8000"
     depends_on:
@@ -44,53 +272,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-  api-node:
-    build:
-      context: ..
-      dockerfile: apps/api-node/Dockerfile
-    environment:
-      PORT: "3001"
-      REDIS_URL: redis://redis:6379/0
-      WEBHOOK_SECRET: dev-webhook-secret-change-me
-    ports:
-      - "3001:3001"
-    depends_on:
-      redis:
+      kafka:
         condition: service_healthy
-
-  celery-worker:
-    build:
-      context: ..
-      dockerfile: apps/worker/Dockerfile
-    environment:
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  celery-beat:
-    build:
-      context: ..
-      dockerfile: apps/worker/Dockerfile
-    command: ["celery", "-A", "ignislink_worker.celery_app:celery_app", "beat", "--loglevel=INFO"]
-    environment:
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  prometheus:
-    image: prom/prometheus:v2.55.1
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    depends_on:
-      - api-node
-
-volumes:
-  postgres-data:
-  redis-data:
+    networks:
+      - sentry-net
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+  # === END AGENT-2 (api-py) ADDITIONS ========================================

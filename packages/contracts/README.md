@@ -1,4 +1,4 @@
-# `@ignislink/contracts`
+# `@sentry-max/contracts`
 
 Shared cross-service contracts (Zod schemas + TS types).
 
@@ -29,7 +29,7 @@ contract gate fails.
 ## Running tests
 
 ```bash
-pnpm --filter @ignislink/contracts test
+pnpm --filter @sentry-max/contracts test
 ```
 
 ## Modules

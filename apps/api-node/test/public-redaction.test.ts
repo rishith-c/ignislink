@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { redactIncidentForPublicStream } from "../src/lib/redaction.js";
-import type { IncidentInternalEvent } from "@ignislink/contracts/incident-events";
+import type { IncidentInternalEvent } from "@sentry-max/contracts/incident-events";
 
 const polygon = {
   type: "MultiPolygon",

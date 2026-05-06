@@ -19,7 +19,7 @@ export const app = createApp();
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const env = readEnv();
-  const logger = pino({ name: "ignislink-api-node" });
+  const logger = pino({ name: "sentry-max-api-node" });
   serve({ fetch: app.fetch, port: env.PORT });
   logger.info({ port: env.PORT }, "api-node listening");
 }

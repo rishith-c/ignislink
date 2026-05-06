@@ -50,7 +50,7 @@ async function loadCalFireFeed(): Promise<CalFireIncident[]> {
   if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) return cache.incidents;
   const res = await fetch(calfireFeedUrl(), {
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; ignislink/0.1)",
+      "User-Agent": "Mozilla/5.0 (compatible; sentry-max/0.1)",
       Accept: "application/json",
     },
     cache: "no-store",

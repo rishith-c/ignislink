@@ -10,4 +10,4 @@ def test_contract_package_exports_codegen_inputs() -> None:
 
     assert package["exports"]["."]["default"] == "./dist/index.js"
     assert package["exports"]["./geometry"]["types"] == "./dist/geometry.d.ts"
-    assert (Path(__file__).resolve().parents[1] / "src" / "ignislink_api" / "generated" / "README.md").exists()
+    assert (Path(__file__).resolve().parents[1] / "src" / "sentry_max_api" / "generated" / "README.md").exists()

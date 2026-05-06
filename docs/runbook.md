@@ -1,4 +1,4 @@
-# IgnisLink Runbook
+# SentryMax Runbook
 
 > **Status:** placeholder. Filled in per service as Stages 1–5 land. Codex
 > owns the operations section (`apps/api-py`, `apps/api-node`, `apps/worker`,

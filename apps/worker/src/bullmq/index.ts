@@ -15,7 +15,7 @@ export function createWebhookFanoutQueue(connection = createRedisConnection()) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const logger = pino({ name: "ignislink-bullmq" });
+  const logger = pino({ name: "sentry-max-bullmq" });
   const queue = createWebhookFanoutQueue();
   logger.info({ queue: queue.name }, "bullmq queue booted");
 }

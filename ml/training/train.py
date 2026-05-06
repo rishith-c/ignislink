@@ -61,6 +61,7 @@ class TrainConfig:
     weight_decay: float = 1e-4
     seed: int = 42
     gpus: int = 0
+    accelerator: str = "cpu"
     synthetic: bool = True
     checkpoint_dir: str = "ml/checkpoints"
     experiment_name: str = "fire-spread-smoke"
@@ -233,8 +234,13 @@ def train(cfg: TrainConfig) -> Path:
 
     logger = _build_mlflow_logger(cfg)
 
-    accelerator = "cpu" if cfg.gpus == 0 else "gpu"
-    devices = "auto" if cfg.gpus == 0 else cfg.gpus
+    accelerator = cfg.accelerator
+    devices: int | str = "auto"
+    if cfg.gpus > 0 and cfg.accelerator == "cpu":
+        accelerator = "gpu"
+        devices = cfg.gpus
+    elif cfg.accelerator in {"mps", "gpu"}:
+        devices = cfg.gpus if cfg.gpus > 0 else 1
 
     trainer = L.Trainer(
         max_epochs=cfg.max_epochs,
@@ -278,7 +284,7 @@ def _parse_yaml_config(path: str) -> dict[str, Any]:
 
 
 def parse_args(argv: list[str] | None = None) -> TrainConfig:
-    p = argparse.ArgumentParser(description="Train the IgnisLink fire-spread model.")
+    p = argparse.ArgumentParser(description="Train the SentryMax fire-spread model.")
     p.add_argument("--config", type=str, default=None, help="Optional YAML config file.")
     p.add_argument("--max-epochs", type=int, default=2)
     p.add_argument("--batch-size", type=int, default=2)
@@ -290,6 +296,12 @@ def parse_args(argv: list[str] | None = None) -> TrainConfig:
     p.add_argument("--weight-decay", type=float, default=1e-4)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--gpus", type=int, default=0, help="GPU count (0 = CPU).")
+    p.add_argument(
+        "--accelerator",
+        choices=("cpu", "mps", "gpu", "auto"),
+        default="cpu",
+        help="Lightning accelerator. Defaults to CPU for deterministic CI; use mps on Apple Silicon.",
+    )
     p.add_argument(
         "--synthetic",
         action="store_true",
@@ -317,6 +329,7 @@ def parse_args(argv: list[str] | None = None) -> TrainConfig:
         "weight_decay": args.weight_decay,
         "seed": args.seed,
         "gpus": args.gpus,
+        "accelerator": args.accelerator,
         "synthetic": args.synthetic,
         "checkpoint_dir": args.checkpoint_dir,
         "experiment_name": args.experiment_name,

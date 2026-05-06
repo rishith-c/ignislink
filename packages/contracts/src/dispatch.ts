@@ -49,7 +49,7 @@ export const DispatchPayloadSchema = z
 export type DispatchPayload = z.infer<typeof DispatchPayloadSchema>;
 
 // Outbound webhook envelope — what RapidSOS / municipal CAD partners receive.
-// HMAC-SHA256 over the JSON body in the `X-IgnisLink-Signature` header.
+// HMAC-SHA256 over the JSON body in the `X-SentryMax-Signature` header.
 export const DispatchWebhookEnvelopeSchema = z
   .object({
     schema_version: z.literal(1),

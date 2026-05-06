@@ -1,4 +1,4 @@
-# IgnisLink — Product Requirements Document
+# SentryMax — Product Requirements Document
 
 > **Status:** v0 integrated PRD.
 > §1–5 owned by Agent A (claude); §6–10 owned by Agent B (codex).
@@ -25,11 +25,11 @@
 
 ## 1. Vision
 
-IgnisLink shrinks the time between *"satellite saw heat"* and *"trucks rolling out of the firehouse."*
+SentryMax shrinks the time between *"satellite saw heat"* and *"trucks rolling out of the firehouse."*
 
-NASA FIRMS publishes thermal anomalies within ~3 minutes of satellite overpass. Today, most fire departments learn about a wildland fire from civilian 911 calls — minutes to hours later, after the fire is already established and after the **pre-suppression window** (the first 30–60 minutes when initial attack is most effective) has closed. IgnisLink ingests FIRMS in near-real-time, verifies each hotspot against news and social signals to suppress false positives (controlled burns, industrial flares, agricultural burns), predicts where the fire will go in the next 1, 6, and 24 hours using a custom-trained ML model conditioned on live wind / fuel / terrain, visualizes propagation as a live WebGL particle simulation, and routes the verified incident — with predicted spread, recommended staging area, and the three nearest stations ranked by ETA — directly to the dispatcher console and out to partner CAD systems.
+NASA FIRMS publishes thermal anomalies within ~3 minutes of satellite overpass. Today, most fire departments learn about a wildland fire from civilian 911 calls — minutes to hours later, after the fire is already established and after the **pre-suppression window** (the first 30–60 minutes when initial attack is most effective) has closed. SentryMax ingests FIRMS in near-real-time, verifies each hotspot against news and social signals to suppress false positives (controlled burns, industrial flares, agricultural burns), predicts where the fire will go in the next 1, 6, and 24 hours using a custom-trained ML model conditioned on live wind / fuel / terrain, visualizes propagation as a live WebGL particle simulation, and routes the verified incident — with predicted spread, recommended staging area, and the three nearest stations ranked by ETA — directly to the dispatcher console and out to partner CAD systems.
 
-IgnisLink is **not** a replacement for 911 or for human dispatch judgement. It is an **assistive surveillance and triage layer**: the satellite says *"something is hot here,"* and IgnisLink says *"here is the verified context, the predicted footprint, and the nearest crew."*
+SentryMax is **not** a replacement for 911 or for human dispatch judgement. It is an **assistive surveillance and triage layer**: the satellite says *"something is hot here,"* and SentryMax says *"here is the verified context, the predicted footprint, and the nearest crew."*
 
 ### 1.1 North-star metrics
 
@@ -47,7 +47,7 @@ IgnisLink is **not** a replacement for 911 or for human dispatch judgement. It i
 
 ### 1.2 Non-goals (v1)
 
-- **Replace 911.** Civilian calls remain the primary trigger; IgnisLink augments.
+- **Replace 911.** Civilian calls remain the primary trigger; SentryMax augments.
 - **Provide official evacuation guidance.** The Public Awareness Map shows situational data only; the local AHJ remains authoritative for evacuation orders.
 - **International coverage.** v1 scope is CONUS + AK / HI insofar as FIRMS, HRRR, LANDFIRE coverage allows. International is post-v1.
 - **Replace ICS or CAD.** Integration is webhook-out, not replacement.
@@ -71,7 +71,7 @@ IgnisLink is **not** a replacement for 911 or for human dispatch judgement. It i
 - **Mental model:** Tabular incident queue + situational map; single-click dispatch to crews.
 - **Existing tools:** Tyler New World / Hexagon / Central Square CAD; ESRI / ArcGIS Dashboards; Active911; IamResponding; municipal radio.
 - **Pain points:** Alert fatigue from low-confidence sources; latency between satellite confirmation and CAD entry; manual address-to-station lookup; no spread prediction at the moment of dispatch.
-- **What IgnisLink does for them:** Surface fires that haven't been called in yet, with verification context + predicted footprint + nearest-station ranking on one screen. Single-click dispatch with a confirm modal.
+- **What SentryMax does for them:** Surface fires that haven't been called in yet, with verification context + predicted footprint + nearest-station ranking on one screen. Single-click dispatch with a confirm modal.
 - **Success criteria:**
   - Zero context-switch — every ICS-relevant field visible in the detail sheet without leaving the console.
   - Console operable end-to-end with keyboard alone (Cmd-K palette + single-letter shortcuts).
@@ -82,7 +82,7 @@ IgnisLink is **not** a replacement for 911 or for human dispatch judgement. It i
 
 - **Role:** Resident, traveler, journalist, evacuation planner.
 - **Mental model:** Weather app, browser map, news feed.
-- **What IgnisLink does for them:** Read-only awareness — active fires near a searched address, upwind direction (where embers are likely heading), verification status as a plain-English label ("reported by news outlets" / "satellite-only — unverified").
+- **What SentryMax does for them:** Read-only awareness — active fires near a searched address, upwind direction (where embers are likely heading), verification status as a plain-English label ("reported by news outlets" / "satellite-only — unverified").
 - **Success criteria:**
   - Address search → fires within 50 km within 1 second.
   - Mobile-first; usable on a 3G connection (static-tile fallback when MapboxGL fails).
@@ -93,7 +93,7 @@ IgnisLink is **not** a replacement for 911 or for human dispatch judgement. It i
 
 - **Role:** Chief, deputy, IT lead at a fire department or regional dispatch center.
 - **Mental model:** Configure rules, audit decisions, manage rosters, control rollout.
-- **What IgnisLink does for them:**
+- **What SentryMax does for them:**
   - Bounding-box config for the FIRMS poller.
   - Alert routing rules (region → station list; time-of-day overrides).
   - Camera registry (Stage 6) with view-cone editor.
@@ -225,7 +225,7 @@ Horizon overlay toggle (1 h / 6 h / 24 h) is in the legend rather than the globa
 - No PII, no station info, no internal verification provenance.
 - Mobile-first responsive layout.
 - Static-tile fallback when MapboxGL fails (low-bandwidth, ad-blocker breaking GL).
-- Disclaimer banner: *"IgnisLink is a situational tool. For evacuation orders, follow your local AHJ."*
+- Disclaimer banner: *"SentryMax is a situational tool. For evacuation orders, follow your local AHJ."*
 
 ### 4.3 Admin (`/admin`)
 
@@ -448,7 +448,7 @@ Pydantic models for `apps/api-py` are generated from the TS Zod schemas via `zod
 
 ### 6.1 Service Boundaries
 
-IgnisLink uses a split backend so life-safety ingestion and dispatch remain isolated from public traffic:
+SentryMax uses a split backend so life-safety ingestion and dispatch remain isolated from public traffic:
 
 - `apps/api-py`: Python 3.12 + FastAPI service for internal ingestion control, ML inference orchestration, detection management, dispatch decisions, station lookup, enrichment reads, and privileged admin APIs.
 - `apps/api-node`: Node.js + Hono public Alerts API for partner reads, webhook subscriptions, webhook fan-out, request signing, and public rate limiting.
@@ -569,10 +569,10 @@ The public API is read-only except webhook subscription management. It must be h
 
 Webhook deliveries use HMAC-SHA256 signatures over timestamp and raw body. Required headers:
 
-- `X-IgnisLink-Timestamp`
-- `X-IgnisLink-Signature`
-- `X-IgnisLink-Event-Id`
-- `X-IgnisLink-Schema-Version`
+- `X-SentryMax-Timestamp`
+- `X-SentryMax-Signature`
+- `X-SentryMax-Event-Id`
+- `X-SentryMax-Schema-Version`
 
 Receivers get stable event ids for idempotency. Replays outside a five-minute window must be rejected.
 

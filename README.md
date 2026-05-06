@@ -21,7 +21,7 @@ git clone https://github.com/rishith-c/sentry_max.git
 cd sentry_max
 cp .env.example .env.local       # then paste your FIRMS_API_KEY
 pnpm install
-pnpm --filter @ignislink/web dev
+pnpm --filter @sentry-max/web dev
 ```
 
 Open `http://localhost:3000`. The dev server auto-reloads on file save.
@@ -107,7 +107,7 @@ These work without registration:
 ## Run the web app
 
 ```bash
-pnpm --filter @ignislink/web dev
+pnpm --filter @sentry-max/web dev
 ```
 
 - Dev server: `http://localhost:3000` (Next.js 15 with hot reload)
@@ -123,8 +123,8 @@ without any backend or live ingestion.
 ### Production build
 
 ```bash
-pnpm --filter @ignislink/web build
-pnpm --filter @ignislink/web start
+pnpm --filter @sentry-max/web build
+pnpm --filter @sentry-max/web start
 ```
 
 Serves on port 3000 by default. Tested cold-start: ~12 s.
@@ -169,10 +169,10 @@ intended use, limitations, and ecoregion coverage.
 
 ```bash
 # TypeScript typecheck across all workspaces
-pnpm --filter "@ignislink/*" typecheck
+pnpm --filter "@sentry-max/*" typecheck
 
 # Web app + packages tests
-pnpm --filter "@ignislink/*" test
+pnpm --filter "@sentry-max/*" test
 
 # Python ML tests (after `git checkout feat/ml/spread-model`)
 python -m pytest ml/__tests__ -v
@@ -187,7 +187,7 @@ commit that touches `packages/contracts/`.
 ## Project structure
 
 ```
-ignislink/
+sentry-max/
 ├── apps/
 │   └── web/                Next.js 15: console + public map + admin (Agent A)
 │       ├── src/app/        App Router routes

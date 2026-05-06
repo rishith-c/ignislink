@@ -1,9 +1,9 @@
 {
-  "name": "@ignislink/api-node",
+  "name": "@sentry-max/api-node",
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Public alerts API and webhook fan-out edge for IgnisLink.",
+  "description": "Public alerts API and webhook fan-out edge for SentryMax.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
-    "@ignislink/contracts": "workspace:*",
+    "@sentry-max/contracts": "workspace:*",
     "hono": "^4.6.9",
     "ioredis": "^5.4.1",
     "pino": "^9.5.0",

@@ -77,7 +77,7 @@ export async function crossCheckFirms(opts: {
 
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "ignislink/0.1 (ops@ignislink.io)" },
+      headers: { "User-Agent": "sentry-max/0.1 (ops@sentry-max.io)" },
       // Don't cache the FIRMS response — satellite passes are minute-fresh.
       cache: "no-store",
     });

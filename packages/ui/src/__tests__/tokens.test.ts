@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { cn } from "../cn.js";
 import { tokens } from "../tokens.js";
 
-describe("@ignislink/ui shared primitives", () => {
+describe("@sentry-max/ui shared primitives", () => {
   it("publishes verification tokens for every public incident status", () => {
     expect(Object.keys(tokens.verification).sort()).toEqual([
       "CREWS_ACTIVE",

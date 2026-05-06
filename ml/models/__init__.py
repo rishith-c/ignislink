@@ -1,4 +1,4 @@
-"""IgnisLink fire-spread models.
+"""SentryMax fire-spread models.
 
 - rothermel: physics-informed cellular automaton baseline (Stage 3.A).
 - unet_convlstm: U-Net + ConvLSTM primary model (Stage 3.B).

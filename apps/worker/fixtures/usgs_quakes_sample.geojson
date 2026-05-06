@@ -1,0 +1,104 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1777582200000,
+    "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+    "title": "USGS All Earthquakes, Past Day",
+    "status": 200,
+    "api": "1.10.3",
+    "count": 3
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 4.2,
+        "place": "23 km E of Anza, CA",
+        "time": 1777581600000,
+        "updated": 1777581900000,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/ci40123456",
+        "felt": 12,
+        "cdi": 3.4,
+        "alert": null,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 271,
+        "net": "ci",
+        "code": "40123456",
+        "ids": ",ci40123456,",
+        "sources": ",ci,",
+        "types": ",origin,phase-data,",
+        "magType": "ml",
+        "type": "earthquake",
+        "title": "M 4.2 - 23 km E of Anza, CA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-116.439, 33.547, 8.4]
+      },
+      "id": "ci40123456"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 2.8,
+        "place": "12 km W of Carlin, NV",
+        "time": 1777579800000,
+        "updated": 1777580100000,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nn00876543",
+        "felt": null,
+        "cdi": null,
+        "alert": null,
+        "status": "automatic",
+        "tsunami": 0,
+        "sig": 121,
+        "net": "nn",
+        "code": "00876543",
+        "ids": ",nn00876543,",
+        "sources": ",nn,",
+        "types": ",origin,phase-data,",
+        "magType": "ml",
+        "type": "earthquake",
+        "title": "M 2.8 - 12 km W of Carlin, NV"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-116.260, 40.712, 12.0]
+      },
+      "id": "nn00876543"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 5.6,
+        "place": "85 km SE of Ferndale, CA",
+        "time": 1777578000000,
+        "updated": 1777578300000,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nc73912345",
+        "felt": 245,
+        "cdi": 4.9,
+        "alert": "yellow",
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 484,
+        "net": "nc",
+        "code": "73912345",
+        "ids": ",nc73912345,",
+        "sources": ",nc,",
+        "types": ",dyfi,origin,phase-data,",
+        "magType": "mw",
+        "type": "earthquake",
+        "title": "M 5.6 - 85 km SE of Ferndale, CA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-124.075, 40.114, 18.7]
+      },
+      "id": "nc73912345"
+    }
+  ],
+  "bbox": [-124.075, 33.547, -116.260, 40.712]
+}

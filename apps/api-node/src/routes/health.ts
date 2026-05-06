@@ -6,9 +6,9 @@ import { readEnv } from "../env.js";
 export function healthRoutes() {
   const app = new Hono();
   const registry = new Registry();
-  collectDefaultMetrics({ register: registry, prefix: "ignislink_api_node_" });
+  collectDefaultMetrics({ register: registry, prefix: "sentry_max_api_node_" });
 
-  app.get("/health", (c) => c.json({ status: "ok", service: "@ignislink/api-node" }));
+  app.get("/health", (c) => c.json({ status: "ok", service: "@sentry-max/api-node" }));
 
   app.get("/ready", (c) => {
     const env = readEnv();

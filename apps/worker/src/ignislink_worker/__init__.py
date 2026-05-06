@@ -1,1 +1,1 @@
-"""IgnisLink Celery worker package."""
+"""SentryMax Celery worker package."""

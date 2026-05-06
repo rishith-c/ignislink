@@ -1,9 +1,9 @@
 {
-  "name": "@ignislink/geospatial",
+  "name": "@sentry-max/geospatial",
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Pure-function geospatial utilities for IgnisLink: bbox math, geohash, polygon simplification, wind rose binning. No I/O.",
+  "description": "Pure-function geospatial utilities for SentryMax: bbox math, geohash, polygon simplification, wind rose binning. No I/O.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

@@ -1,6 +1,6 @@
 # `ml/` — Fire-spread training pipeline
 
-Code lives here for the IgnisLink fire-spread ML model. Per PRD §5.
+Code lives here for the SentryMax fire-spread ML model. Per PRD §5.
 
 ## Layout
 

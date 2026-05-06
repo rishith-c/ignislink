@@ -50,7 +50,7 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // IgnisLink semantic palette — verification states + fire-prediction bands.
+        // SentryMax semantic palette — verification states + fire-prediction bands.
         verification: {
           unreported: "hsl(var(--verification-unreported))",
           emerging: "hsl(var(--verification-emerging))",

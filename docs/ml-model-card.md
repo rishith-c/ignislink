@@ -1,4 +1,4 @@
-# IgnisLink Fire-Spread Model — Model Card
+# SentryMax Fire-Spread Model — Model Card
 
 > **Status:** placeholder. This document is **mandatory** before any model is
 > promoted from MLflow `Staging` → `Production` (PRD §5.6). It is filled in

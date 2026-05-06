@@ -1,4 +1,4 @@
-"""Loss functions for the IgnisLink fire-spread model — PRD §5.3.
+"""Loss functions for the SentryMax fire-spread model — PRD §5.3.
 
 Combined loss::
 

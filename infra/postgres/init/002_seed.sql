@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS service_boot_marker (
 );
 
 INSERT INTO service_boot_marker (service)
-VALUES ('ignislink-stage-0')
+VALUES ('sentry-max-stage-0')
 ON CONFLICT DO NOTHING;

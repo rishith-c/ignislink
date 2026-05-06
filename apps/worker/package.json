@@ -1,9 +1,9 @@
 {
-  "name": "@ignislink/worker",
+  "name": "@sentry-max/worker",
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "BullMQ workers for IgnisLink webhook fan-out and outbox delivery.",
+  "description": "BullMQ workers for SentryMax webhook fan-out and outbox delivery.",
   "main": "./dist/bullmq/index.js",
   "types": "./dist/bullmq/index.d.ts",
   "scripts": {

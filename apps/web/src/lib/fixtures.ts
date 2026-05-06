@@ -1,5 +1,5 @@
 // Fixture incidents for the dispatcher console. These match the IncidentInternalEvent
-// shape from @ignislink/contracts but are inlined here to keep the demo runnable without
+// shape from @sentry-max/contracts but are inlined here to keep the demo runnable without
 // the live ingestion pipeline.
 
 export type VerificationStatus =

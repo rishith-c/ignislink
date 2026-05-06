@@ -12,7 +12,7 @@ export function webhooksRoutes() {
     const verified = verifyWebhookSignature({
       secret: env.WEBHOOK_SECRET,
       body,
-      header: c.req.header("x-ignislink-signature") ?? null,
+      header: c.req.header("x-sentry-max-signature") ?? null,
       replayWindowSeconds: env.WEBHOOK_REPLAY_WINDOW_SECONDS,
     });
 

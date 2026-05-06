@@ -3,7 +3,7 @@ import {
   toPublicEvent,
   type IncidentInternalEvent,
   type IncidentPublicEvent,
-} from "@ignislink/contracts/incident-events";
+} from "@sentry-max/contracts/incident-events";
 
 export function redactIncidentForPublicStream(
   event: IncidentInternalEvent,

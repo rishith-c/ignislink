@@ -1,9 +1,9 @@
 {
-  "name": "@ignislink/ui",
+  "name": "@sentry-max/ui",
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Shared shadcn/ui primitives + design tokens for IgnisLink frontends.",
+  "description": "Shared shadcn/ui primitives + design tokens for SentryMax frontends.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

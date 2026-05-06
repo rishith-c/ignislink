@@ -2,7 +2,7 @@ import os
 
 from celery import Celery
 
-celery_app = Celery("ignislink_worker")
+celery_app = Celery("sentry-max_worker")
 celery_app.conf.update(
     broker_url=os.getenv("CELERY_BROKER_URL", "memory://"),
     result_backend=os.getenv("CELERY_RESULT_BACKEND", "cache+memory://"),
@@ -14,8 +14,8 @@ celery_app.conf.update(
 
 celery_app.autodiscover_tasks(
     [
-        "ignislink_worker.firms",
-        "ignislink_worker.verification",
-        "ignislink_worker.outbox",
+        "sentry-max_worker.firms",
+        "sentry-max_worker.verification",
+        "sentry-max_worker.outbox",
     ]
 )

@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  transpilePackages: ["@ignislink/contracts", "@ignislink/geospatial", "@ignislink/ui"],
+  transpilePackages: ["@sentry-max/contracts", "@sentry-max/geospatial", "@sentry-max/ui"],
   // typedRoutes is unsupported under Turbopack today.
   images: {
     remotePatterns: [

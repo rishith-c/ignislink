@@ -1,0 +1,8 @@
+artifact_location: file:///Users/rishith/sentry-max-forge-ui/ml/.mlruns/884680237169194011
+creation_time: 1778022503983
+experiment_id: '884680237169194011'
+last_update_time: 1778022503983
+lifecycle_stage: active
+name: fire-spread-smoke
+trace_location: null
+workspace: default

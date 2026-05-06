@@ -28,6 +28,7 @@ mlflow.db
 checkpoints/
 *.ckpt
 *.onnx
+*.onnx.data
 *.pth
 ml/data/raw/
 ml/data/processed/

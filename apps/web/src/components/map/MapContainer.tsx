@@ -6,7 +6,7 @@
 import dynamic from "next/dynamic";
 import type { MapIncident } from "./LeafletMap";
 
-const LeafletMap = dynamic(() => import("./IgnisMapClient"), {
+const LeafletMap = dynamic(() => import("./SentryMapClient"), {
   ssr: false,
   loading: () => (
     <div

@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/rishith/sentry-max-forge-ui/ml/.mlruns/884680237169194011/c1ba7f470d4143278d2459d8fbb7617e/artifacts
+end_time: 1778022998434
+entry_point_name: ''
+experiment_id: '884680237169194011'
+lifecycle_stage: active
+run_id: c1ba7f470d4143278d2459d8fbb7617e
+run_name: aged-skink-281
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778022504079
+status: 3
+tags: []
+user_id: rishith

@@ -9,7 +9,7 @@ describe("api-node health routes", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       status: "ok",
-      service: "@ignislink/api-node",
+      service: "@sentry-max/api-node",
     });
   });
 
@@ -17,6 +17,6 @@ describe("api-node health routes", () => {
     const response = await createApp().request("/metrics");
 
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain("ignislink_api_node_process_cpu_user_seconds_total");
+    expect(await response.text()).toContain("sentry_max_api_node_process_cpu_user_seconds_total");
   });
 });

@@ -1,4 +1,4 @@
-# IgnisLink Blockers
+# SentryMax Blockers
 
 No active blockers.
 
