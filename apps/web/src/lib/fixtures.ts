@@ -23,6 +23,37 @@ export interface StationCandidate {
   lon?: number;
 }
 
+export type ResourceKind = "engine" | "helicopter" | "fixed-wing" | "dozer" | "hand-crew";
+export type ResourceCapability =
+  | "structure-protection"
+  | "wildland-attack"
+  | "aerial-water-drop"
+  | "aerial-retardant-drop"
+  | "line-cutting"
+  | "command-and-control"
+  | "medical";
+
+/**
+ * Multi-modal dispatch candidate — engines, helicopters, fixed-wing tankers,
+ * dozers, hand crews. Used by the resource ranker (PR #20). Stations remain
+ * as a separate field for UI compatibility; over time `resources` becomes
+ * the single source of truth.
+ */
+export interface ResourceCandidate {
+  id: string;
+  kind: ResourceKind;
+  name: string;
+  agency: string;
+  etaMinutes: number;
+  distanceKm: number;
+  cruiseSpeedMs: number | null;
+  capabilities: ResourceCapability[];
+  available: boolean;
+  /** Map-render coordinates for the resource's home base. */
+  lat?: number;
+  lon?: number;
+}
+
 export interface VerificationSource {
   kind: "news" | "social" | "scanner" | "registry";
   title: string;
@@ -49,6 +80,10 @@ export interface FixtureIncident {
   windDirDeg: number;
   predictedSpread: { horizonMin: 60 | 360 | 1440; areaAcres: number; bearingDeg: number }[];
   stations: StationCandidate[];
+  /** Multi-modal dispatch resources (engines + aerial + dozers + hand crews).
+   *  Optional for backward compat — incidents without it fall back to
+   *  treating each `stations[i]` as a `kind: "engine"` resource. */
+  resources?: ResourceCandidate[];
   verificationSources: VerificationSource[];
 }
 
@@ -81,6 +116,90 @@ export const FIXTURE_INCIDENTS: FixtureIncident[] = [
       { id: "stn_eldorado_3", name: "Pollock Pines Station 28", agency: "El Dorado Cnty FD", etaMinutes: 6, distanceKm: 4.1, lat: 38.7619, lon: -120.4641 },
       { id: "stn_eldorado_5", name: "Camino Station 17", agency: "Cal Fire AEU", etaMinutes: 11, distanceKm: 9.4, lat: 38.7368, lon: -120.6747 },
       { id: "stn_eldorado_2", name: "Placerville HQ", agency: "El Dorado Cnty FD", etaMinutes: 14, distanceKm: 13.2, lat: 38.7296, lon: -120.7986 },
+    ],
+    // Multi-modal resources for the highest-FRP incident in the fixture set.
+    // Aerial first (helicopter + tanker) because IG-2K91 is EMERGING with
+    // 412 MW FRP and a 24h projection of ~1100 acres — that's a critical
+    // fast-attack window. Engines and dozer back them up.
+    resources: [
+      {
+        id: "h_calfire_h301",
+        kind: "helicopter",
+        name: "H-301 (Cal Fire Bell 412)",
+        agency: "Cal Fire AEU",
+        etaMinutes: 9,
+        distanceKm: 28.5,
+        cruiseSpeedMs: 60, // 130 kn ≈ 67 m/s, derate for departure
+        capabilities: ["aerial-water-drop", "wildland-attack", "command-and-control"],
+        available: true,
+        lat: 38.7080,
+        lon: -120.7458,
+      },
+      {
+        id: "fw_calfire_t101",
+        kind: "fixed-wing",
+        name: "T-101 (S-2T air tanker)",
+        agency: "Cal Fire — Grass Valley ATB",
+        etaMinutes: 14,
+        distanceKm: 64.0,
+        cruiseSpeedMs: 110,
+        capabilities: ["aerial-retardant-drop"],
+        available: true,
+        lat: 39.2241,
+        lon: -121.0017,
+      },
+      {
+        id: "eng_eldorado_28",
+        kind: "engine",
+        name: "E-28 (Type-1 engine)",
+        agency: "El Dorado Cnty FD",
+        etaMinutes: 6,
+        distanceKm: 4.1,
+        cruiseSpeedMs: 14,
+        capabilities: ["wildland-attack", "structure-protection"],
+        available: true,
+        lat: 38.7619,
+        lon: -120.4641,
+      },
+      {
+        id: "doz_calfire_d4",
+        kind: "dozer",
+        name: "D-4 (Cal Fire dozer)",
+        agency: "Cal Fire AEU",
+        etaMinutes: 22,
+        distanceKm: 18.7,
+        cruiseSpeedMs: 6,
+        capabilities: ["line-cutting"],
+        available: true,
+        lat: 38.6480,
+        lon: -120.5821,
+      },
+      {
+        id: "hc_eldorado_5",
+        kind: "hand-crew",
+        name: "Hand Crew 5 (20-pax)",
+        agency: "Cal Fire AEU",
+        etaMinutes: 28,
+        distanceKm: 22.3,
+        cruiseSpeedMs: 12,
+        capabilities: ["line-cutting", "wildland-attack"],
+        available: true,
+        lat: 38.6310,
+        lon: -120.6500,
+      },
+      {
+        id: "eng_camino_17",
+        kind: "engine",
+        name: "E-17 (Type-3 engine)",
+        agency: "Cal Fire AEU",
+        etaMinutes: 11,
+        distanceKm: 9.4,
+        cruiseSpeedMs: 13,
+        capabilities: ["wildland-attack", "structure-protection"],
+        available: true,
+        lat: 38.7368,
+        lon: -120.6747,
+      },
     ],
     verificationSources: [
       {
