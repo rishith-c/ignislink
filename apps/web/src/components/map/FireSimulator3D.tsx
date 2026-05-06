@@ -44,6 +44,7 @@ import { AtmosphericLayer } from "@/components/map/AtmosphericLayer";
 import { UnitModel } from "@/components/map/units/UnitModel";
 import { UnitRouteLine } from "@/components/map/UnitRouteLine";
 import { UnitRouteBadge, type UnitStatus } from "@/components/map/UnitRouteBadge";
+import { useBasemapTexture } from "@/lib/hooks/useBasemapTexture";
 
 interface ResourceMarker {
   id: string;
@@ -285,10 +286,14 @@ function Terrain({
   fireGridRef,
   windDirDeg,
   windSpeedMs,
+  heightmap: heightmapProp,
+  bbox,
 }: {
   fireGridRef: React.MutableRefObject<Float32Array>;
   windDirDeg: number;
   windSpeedMs: number;
+  heightmap?: Float32Array | null;
+  bbox?: FirmsBbox;
 }) {
   const fireMatRef = useRef<THREE.MeshBasicMaterial>(null!);
   const stepCounter = useRef(0);
@@ -303,7 +308,18 @@ function Terrain({
     [],
   );
 
-  const heightmap = useMemo(buildHeightmap, []);
+  // Use the real DEM heightmap when it's the right size; otherwise fall
+  // back to the procedural one so callers without a bbox still render.
+  const heightmap = useMemo<Float32Array>(() => {
+    if (
+      heightmapProp &&
+      heightmapProp.length === TERRAIN_RES * TERRAIN_RES
+    ) {
+      return heightmapProp;
+    }
+    return buildHeightmap();
+  }, [heightmapProp]);
+
   const terrainGeo = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
       TERRAIN_SIZE,
@@ -330,6 +346,13 @@ function Terrain({
 
   const initialTex = useMemo(() => fireGridToTexture(fireGridRef.current), [fireGridRef]);
 
+  // Cartographic basemap texture (Apple-Maps-style). Falls back to dark
+  // material when no bbox is provided or the fetch fails.
+  const { texture: basemapTexture } = useBasemapTexture({
+    bbox: bbox ?? null,
+    enabled: Boolean(bbox),
+  });
+
   useFrame((_, dt) => {
     stepCounter.current += dt;
     if (stepCounter.current >= 0.08) {
@@ -350,7 +373,16 @@ function Terrain({
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}>
       <mesh geometry={terrainGeo} receiveShadow>
-        <meshStandardMaterial color="#1a1a1a" roughness={0.95} metalness={0} flatShading />
+        {basemapTexture ? (
+          <meshStandardMaterial
+            map={basemapTexture}
+            color="#ffffff"
+            roughness={0.85}
+            metalness={0}
+          />
+        ) : (
+          <meshStandardMaterial color="#1a1a1a" roughness={0.95} metalness={0} flatShading />
+        )}
       </mesh>
       <mesh geometry={fireGeo}>
         <meshBasicMaterial
@@ -904,6 +936,7 @@ export function FireSimulator3D({
   hotspots,
   bbox,
   tourMode = false,
+  demHeightmap,
 }: FireSimulator3DProps) {
   const riskColor = RISK_COLORS[risk];
 
@@ -1008,7 +1041,13 @@ export function FireSimulator3D({
           <AppleMapsCamera enabled={!tourActive} />
           <CameraTour hotspots={projected} active={tourActive} index={tourIndex} />
 
-          <Terrain fireGridRef={fireGridRef} windDirDeg={windDirDeg} windSpeedMs={windSpeedMs} />
+          <Terrain
+            fireGridRef={fireGridRef}
+            windDirDeg={windDirDeg}
+            windSpeedMs={windSpeedMs}
+            heightmap={demHeightmap ?? undefined}
+            bbox={bbox}
+          />
           <SpreadRings
             predicted1hAcres={predicted1hAcres}
             predicted6hAcres={predicted6hAcres}
