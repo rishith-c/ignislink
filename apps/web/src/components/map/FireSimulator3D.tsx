@@ -1,17 +1,22 @@
 "use client";
 
-// 3D fire-spread visualizer — v2 (research-driven rebuild).
+// 3D fire-spread visualizer — v3 (multi-fire FIRMS hotspots).
 //
-// What landed:
-//   - Fire that spreads on the GROUND via a per-cell CA mask sampled by the
-//     terrain (ported from pgermon/wildfire's wind-biased rule table +
-//     andrewkchan/fire-simulation's GPGPU pattern, simplified to CPU at 96^2).
-//   - Landmark labels (drei <Text> via <Billboard>) — cities, ridges, water,
-//     highways, and the incident itself.
-//   - Animated dispatched units with ETA labels travelling along a
-//     CatmullRomCurve3 from base → incident, ease-out arrival (slow-near).
-//   - Wind-advected ember particles + smoke column (kept from v1).
-//   - Pure-black scene background to match the staple-derived UI tokens.
+// New in v3:
+//   - Multi-hotspot ignition. Each FIRMS hotspot in the input bbox seeds
+//     the CA mask at its own (x, z) location, scaled by FRP so brighter
+//     hotspots ignite a wider initial cluster.
+//   - Per-hotspot ember + smoke clusters. Each seed gets its own animated
+//     embers and smoke column rather than a single column at the origin.
+//   - Camera tour mode. When `tourMode` is enabled the camera auto-pans
+//     between hotspots (4s per stop, ease-out), with a small TourControls
+//     overlay that shows "i / N · label" and prev/next/pause buttons.
+//
+// What's still here from v2:
+//   - Wind-biased CA spread (pgermon/wildfire rule table on a CPU 96² grid).
+//   - Procedural terrain (sum-of-sines value-noise replacement).
+//   - Animated dispatched units along a CatmullRomCurve3.
+//   - Cinematic intro that pulls the camera in over 2.5s on mount.
 //
 // Refs:
 //   https://github.com/pgermon/wildfire (CA wind-biased rule table)
@@ -19,10 +24,17 @@
 //   https://github.com/vasturiano/r3f-globe (label/path animation patterns)
 //   https://threejs.org/docs/#api/en/extras/curves/CatmullRomCurve3
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Text, Billboard, Stars } from "@react-three/drei";
 import * as THREE from "three";
+
+import {
+  DEFAULT_TERRAIN_SIZE,
+  projectLatLon,
+  type ProjectedHotspot,
+} from "@/lib/firms/project";
+import type { FirmsBbox } from "@/lib/firms/client";
 
 interface ResourceMarker {
   id: string;
@@ -43,6 +55,16 @@ interface Landmark {
   kind: "city" | "ridge" | "water" | "highway";
 }
 
+export interface FireHotspotInput {
+  lat: number;
+  lon: number;
+  frp: number;
+  confidence?: "low" | "nominal" | "high";
+  label?: string;
+  id?: string;
+  brightTi4?: number;
+}
+
 interface FireSimulator3DProps {
   windDirDeg: number;
   windSpeedMs: number;
@@ -53,9 +75,16 @@ interface FireSimulator3DProps {
   resources?: ResourceMarker[];
   landmarks?: Landmark[];
   lowDetail?: boolean;
+  /** Real FIRMS hotspots to plant in the scene as multi-fire ignitions.
+   *  When omitted/empty, the legacy single-fire seed at the origin is used. */
+  hotspots?: FireHotspotInput[];
+  /** Bbox used to project hotspots into the (-S/2..S/2) terrain extent. */
+  bbox?: FirmsBbox;
+  /** When true, the camera auto-tours between hotspots (4s each, ease-out). */
+  tourMode?: boolean;
 }
 
-const TERRAIN_SIZE = 40;
+const TERRAIN_SIZE = DEFAULT_TERRAIN_SIZE;
 const TERRAIN_RES = 96;
 
 const RISK_COLORS: Record<NonNullable<FireSimulator3DProps["risk"]>, [number, number, number]> = {
@@ -75,9 +104,7 @@ const DEFAULT_LANDMARKS: Landmark[] = [
 
 // ─────────────── Terrain heightmap ───────────────
 
-// Pseudo-random for the procedural terrain — deterministic, no extra deps.
 function smoothNoise(x: number, z: number): number {
-  // Multi-octave value-noise replacement via summed sines + a coarser low.
   return (
     0.55 * Math.sin(x * 0.9 + Math.cos(z * 0.7) * 1.4) +
     0.32 * Math.cos(z * 1.3 + x * 0.4) +
@@ -91,15 +118,12 @@ function buildHeightmap(): Float32Array {
   const h = new Float32Array(TERRAIN_RES * TERRAIN_RES);
   for (let j = 0; j < TERRAIN_RES; j++) {
     for (let i = 0; i < TERRAIN_RES; i++) {
-      const x = (i / (TERRAIN_RES - 1)) * 2 - 1; // [-1, 1]
+      const x = (i / (TERRAIN_RES - 1)) * 2 - 1;
       const z = (j / (TERRAIN_RES - 1)) * 2 - 1;
       const r = Math.sqrt(x * x + z * z);
-      // Layered terrain: ridge in the south, valley to the east, fire in
-      // a small basin at the center. The exp() depression at center keeps
-      // the fire visually sunk into the landscape.
       const ridges = smoothNoise(x * 1.2, z * 1.2) * 0.45;
       const fineDetail = smoothNoise(x * 4.0, z * 4.0) * 0.08;
-      const slopeBias = z * 0.18; // tilt north-low / south-high
+      const slopeBias = z * 0.18;
       const fireBasin = -0.52 * Math.exp(-r * 1.4);
       h[j * TERRAIN_RES + i] = ridges + fineDetail + slopeBias + fireBasin;
     }
@@ -107,17 +131,69 @@ function buildHeightmap(): Float32Array {
   return h;
 }
 
-// ─────────────── Fire-spread CA on the GROUND ───────────────
+// ─────────────── Fire-spread CA (multi-seed) ───────────────
 
-function buildFireGrid(): Float32Array {
+/**
+ * Build the fire grid. When `seeds` is provided we plant a seed cluster at
+ * each one; otherwise we fall back to a single 3×3 seed at the centre.
+ *
+ * Seed radius and intensity scale with FRP so brighter hotspots start
+ * hotter and wider. Mapping is compressed (sqrt) so a 400 MW hotspot
+ * doesn't dominate a 50 MW one too aggressively.
+ */
+export function buildFireGrid(
+  seeds?: ReadonlyArray<{ x: number; z: number; frp: number }>,
+): Float32Array {
   const g = new Float32Array(TERRAIN_RES * TERRAIN_RES);
-  const c = Math.floor(TERRAIN_RES / 2);
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      g[(c + dy) * TERRAIN_RES + (c + dx)] = 0.85;
+  if (!seeds || seeds.length === 0) {
+    const c = Math.floor(TERRAIN_RES / 2);
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        g[(c + dy) * TERRAIN_RES + (c + dx)] = 0.85;
+      }
+    }
+    return g;
+  }
+  const half = TERRAIN_SIZE / 2;
+  for (const seed of seeds) {
+    const i = Math.round(((seed.x + half) / TERRAIN_SIZE) * (TERRAIN_RES - 1));
+    const j = Math.round(((seed.z + half) / TERRAIN_SIZE) * (TERRAIN_RES - 1));
+    if (i < 0 || i >= TERRAIN_RES || j < 0 || j >= TERRAIN_RES) continue;
+    const frpScale = Math.max(0.4, Math.min(1.5, Math.sqrt(seed.frp || 1) / 18));
+    const radius = Math.max(1, Math.round(1 + frpScale * 1.6));
+    const peak = 0.55 + Math.min(0.4, frpScale * 0.32);
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const ii = i + dx;
+        const jj = j + dy;
+        if (ii < 0 || ii >= TERRAIN_RES || jj < 0 || jj >= TERRAIN_RES) continue;
+        const r = Math.hypot(dx, dy);
+        if (r > radius) continue;
+        const fall = 1 - r / (radius + 0.0001);
+        const v = peak * fall;
+        const idx = jj * TERRAIN_RES + ii;
+        if (v > (g[idx] ?? 0)) g[idx] = v;
+      }
     }
   }
   return g;
+}
+
+/**
+ * OR a list of FIRMS hotspot seeds into an existing fire grid. The mask is
+ * combined as max(existing, new) per cell so a tour-restart isn't
+ * destructive to in-flight burning cells.
+ */
+export function ignitionMaskFromHotspots(
+  grid: Float32Array,
+  seeds: ReadonlyArray<{ x: number; z: number; frp: number }>,
+): void {
+  const seeded = buildFireGrid(seeds);
+  for (let i = 0; i < grid.length; i++) {
+    const a = grid[i] ?? 0;
+    const b = seeded[i] ?? 0;
+    if (b > a) grid[i] = b;
+  }
 }
 
 function stepFire(grid: Float32Array, windX: number, windZ: number, rng: () => number): void {
@@ -427,7 +503,13 @@ function SpreadRings({
 
 // ─────────────── Landmarks ───────────────
 
-function Landmarks({ landmarks }: { landmarks: Landmark[] }) {
+function Landmarks({
+  landmarks,
+  showIncident = true,
+}: {
+  landmarks: Landmark[];
+  showIncident?: boolean;
+}) {
   return (
     <group>
       {landmarks.map((lm, i) => (
@@ -453,29 +535,48 @@ function Landmarks({ landmarks }: { landmarks: Landmark[] }) {
           </Text>
         </Billboard>
       ))}
-      <Billboard position={[0, 1.4, 0]} follow>
-        <Text
-          fontSize={0.5}
-          color="#fb923c"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.04}
-          outlineColor="#000000"
-          material-toneMapped={false}
-        >
-          INCIDENT
-        </Text>
-      </Billboard>
+      {showIncident && (
+        <Billboard position={[0, 1.4, 0]} follow>
+          <Text
+            fontSize={0.5}
+            color="#fb923c"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.04}
+            outlineColor="#000000"
+            material-toneMapped={false}
+          >
+            INCIDENT
+          </Text>
+        </Billboard>
+      )}
+    </group>
+  );
+}
+
+function HotspotLabels({ hotspots }: { hotspots: ProjectedHotspot[] }) {
+  return (
+    <group>
+      {hotspots.map((h, i) => (
+        <Billboard key={h.id} position={[h.x, 1.4, h.z]} follow>
+          <Text
+            fontSize={0.42}
+            color="#fb923c"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.04}
+            outlineColor="#000000"
+            material-toneMapped={false}
+          >
+            {h.label ?? `IGNITION ${i + 1}`}
+          </Text>
+        </Billboard>
+      ))}
     </group>
   );
 }
 
 // ─────────────── Web Audio "beep" hook ───────────────
-//
-// Plays a short synth tone the first time a dispatched unit arrives within
-// arrival-radius of the incident. AudioContext is created lazily on the
-// first user gesture so we don't hit Chrome's autoplay policy. Per-unit
-// throttle so a unit beeps exactly once.
 
 function playBeep(freq = 880, durationMs = 220): void {
   try {
@@ -498,9 +599,6 @@ function playBeep(freq = 880, durationMs = 220): void {
 }
 
 // ─────────────── Fire-station base marker ───────────────
-//
-// Stays at the curve-start point even after the unit has left. Gives the
-// dispatcher a "the engine came from THERE" cue while zoomed out.
 
 function StationBase({
   position,
@@ -515,7 +613,6 @@ function StationBase({
 }) {
   return (
     <group position={[position.x, isAerial ? 0.25 : 0.05, position.z]}>
-      {/* Pad / helipad disk on the ground. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.32, 0.42, 24]} />
         <meshBasicMaterial color={color} transparent opacity={0.55} />
@@ -524,7 +621,6 @@ function StationBase({
         <circleGeometry args={[0.32, 24]} />
         <meshBasicMaterial color={color} transparent opacity={0.18} />
       </mesh>
-      {/* Vertical pole + dot to make the base findable from any angle. */}
       <mesh position={[0, 0.4, 0]}>
         <cylinderGeometry args={[0.02, 0.02, 0.8, 6]} />
         <meshBasicMaterial color={color} transparent opacity={0.6} />
@@ -571,7 +667,7 @@ function DispatchedUnit({ res }: { res: ResourceMarker }) {
       curve: new THREE.CatmullRomCurve3([start, mid, end], false, "catmullrom", 0.5),
       basePos: new THREE.Vector3(bx, 0, bz),
     };
-  }, [res.kind, res.bearingDeg, res.distanceKm, isAerial]);
+  }, [res.bearingDeg, res.distanceKm, isAerial]);
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
@@ -582,10 +678,8 @@ function DispatchedUnit({ res }: { res: ResourceMarker }) {
     const tEased = 1 - Math.pow(1 - t, 2.5);
     const pos = curve.getPointAt(tEased);
     groupRef.current.position.copy(pos);
-    // Arrival beep: triggers once when the unit crosses ~95% of its travel.
     if (!beeped.current && t >= 0.95) {
       beeped.current = true;
-      // Pitch by kind — aerial assets ping higher.
       const freq = isAerial ? 1100 : res.kind === "dozer" ? 540 : 760;
       playBeep(freq, 240);
     }
@@ -602,10 +696,8 @@ function DispatchedUnit({ res }: { res: ResourceMarker }) {
             ? "#34d399"
             : "#60a5fa";
 
-  const baseLabel =
-    res.baseName ?? (isAerial ? `${res.kind.toUpperCase()} BASE` : "STATION");
-  const unitLabel =
-    res.name ?? `${res.kind.toUpperCase()}`;
+  const baseLabel = res.baseName ?? (isAerial ? `${res.kind.toUpperCase()} BASE` : "STATION");
+  const unitLabel = res.name ?? `${res.kind.toUpperCase()}`;
 
   return (
     <>
@@ -615,7 +707,6 @@ function DispatchedUnit({ res }: { res: ResourceMarker }) {
           <sphereGeometry args={[isAerial ? 0.18 : 0.12, 12, 12]} />
           <meshBasicMaterial color={color} toneMapped={false} />
         </mesh>
-        {/* Thin emissive trail dot for visibility. */}
         <pointLight color={color} intensity={1.2} distance={2.4} decay={2} />
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, 0]}>
           <ringGeometry args={[0, 0.22, 16]} />
@@ -640,38 +731,33 @@ function DispatchedUnit({ res }: { res: ResourceMarker }) {
 }
 
 // ─────────────── Cinematic camera intro ───────────────
-//
-// Camera starts wide (showing the whole 5 km × 5 km tile + landmarks +
-// station bases out to ~18 units from center) and eases in to a tighter
-// fire-focused view over ~2.5 s. After the intro, OrbitControls take over.
 
 function CinematicIntro({
   durationSec = 2.5,
   startPos = new THREE.Vector3(28, 22, 28),
   endPos = new THREE.Vector3(12, 8, 14),
+  enabled = true,
 }: {
   durationSec?: number;
   startPos?: THREE.Vector3;
   endPos?: THREE.Vector3;
+  enabled?: boolean;
 }) {
   const { camera } = useThree();
   const t0 = useRef<number | null>(null);
-  // Keep the user's scroll/pan after the intro completes — we only steer
-  // the camera while `done` is false.
   const done = useRef(false);
 
-  // Initialize camera at the wide position on first frame.
   useEffect(() => {
+    if (!enabled) return;
     camera.position.copy(startPos);
     camera.lookAt(0, 0, 0);
-  }, [camera, startPos]);
+  }, [camera, startPos, enabled]);
 
   useFrame(({ clock }) => {
-    if (done.current) return;
+    if (!enabled || done.current) return;
     if (t0.current === null) t0.current = clock.getElapsedTime();
     const elapsed = clock.getElapsedTime() - t0.current;
     const t = Math.min(1, elapsed / durationSec);
-    // Cubic ease-out per the research report.
     const eased = 1 - Math.pow(1 - t, 3);
     camera.position.lerpVectors(startPos, endPos, eased);
     camera.lookAt(0, 0, 0);
@@ -679,6 +765,113 @@ function CinematicIntro({
   });
 
   return null;
+}
+
+// ─────────────── Camera tour controller ───────────────
+//
+// While `tourMode` is true, the camera eases between hotspots — 4 seconds
+// per stop with a cubic ease-out (same easing pattern as CinematicIntro).
+
+function CameraTour({
+  hotspots,
+  active,
+  index,
+}: {
+  hotspots: ProjectedHotspot[];
+  active: boolean;
+  index: number;
+}) {
+  const { camera } = useThree();
+  const t0 = useRef<number | null>(null);
+  const fromPos = useRef<THREE.Vector3 | null>(null);
+  const toPos = useRef<THREE.Vector3 | null>(null);
+  const fromTarget = useRef<THREE.Vector3 | null>(null);
+  const toTarget = useRef<THREE.Vector3 | null>(null);
+  const settled = useRef(false);
+
+  useEffect(() => {
+    if (!active || hotspots.length === 0) return;
+    const target = hotspots[index % hotspots.length];
+    if (!target) return;
+    fromPos.current = camera.position.clone();
+    toPos.current = new THREE.Vector3(target.x + 6, 8, target.z + 8);
+    fromTarget.current = new THREE.Vector3(0, 0, 0);
+    toTarget.current = new THREE.Vector3(target.x, 0, target.z);
+    t0.current = null;
+    settled.current = false;
+  }, [active, index, hotspots, camera]);
+
+  useFrame(({ clock }) => {
+    if (!active || settled.current) return;
+    if (!fromPos.current || !toPos.current || !toTarget.current || !fromTarget.current) return;
+    if (t0.current === null) t0.current = clock.getElapsedTime();
+    const elapsed = clock.getElapsedTime() - t0.current;
+    const duration = 1.2;
+    const t = Math.min(1, elapsed / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const pos = new THREE.Vector3().lerpVectors(fromPos.current, toPos.current, eased);
+    const target = new THREE.Vector3().lerpVectors(fromTarget.current, toTarget.current, eased);
+    camera.position.copy(pos);
+    camera.lookAt(target);
+    if (t >= 1) settled.current = true;
+  });
+
+  return null;
+}
+
+// ─────────────── Tour controls overlay ───────────────
+
+function TourControls({
+  hotspots,
+  index,
+  setIndex,
+  paused,
+  setPaused,
+}: {
+  hotspots: ProjectedHotspot[];
+  index: number;
+  setIndex: (n: number) => void;
+  paused: boolean;
+  setPaused: (p: boolean) => void;
+}) {
+  if (hotspots.length === 0) return null;
+  const cur = hotspots[index % hotspots.length];
+  const label = cur?.label ?? `Ignition ${index + 1}`;
+  return (
+    <div className="pointer-events-auto absolute bottom-4 left-1/2 z-[404] -translate-x-1/2 rounded-[14px] border border-white/10 bg-black/60 px-3 py-2 text-xs text-zinc-100 backdrop-blur-md">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setIndex((index - 1 + hotspots.length) % hotspots.length)}
+          className="rounded-md border border-white/10 px-2 py-0.5 text-[11px] hover:bg-white/[0.08]"
+          aria-label="previous hotspot"
+        >
+          prev
+        </button>
+        <span className="font-mono text-[11px] tabular-nums text-zinc-300">
+          {(index % hotspots.length) + 1} / {hotspots.length}
+        </span>
+        <span className="text-zinc-200">·</span>
+        <span className="max-w-[220px] truncate text-zinc-100">{label}</span>
+        <button
+          type="button"
+          onClick={() => setPaused(!paused)}
+          className="rounded-md border border-white/10 px-2 py-0.5 text-[11px] hover:bg-white/[0.08]"
+          aria-label={paused ? "resume tour" : "pause tour"}
+        >
+          {paused ? "play" : "pause"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setIndex((index + 1) % hotspots.length)}
+          className="rounded-md border border-white/10 px-2 py-0.5 text-[11px] hover:bg-white/[0.08]"
+          aria-label="next hotspot"
+        >
+          next
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ─────────────── Main scene ───────────────
@@ -693,10 +886,84 @@ export function FireSimulator3D({
   resources = [],
   landmarks = DEFAULT_LANDMARKS,
   lowDetail = false,
+  hotspots,
+  bbox,
+  tourMode = false,
 }: FireSimulator3DProps) {
-  const fireGridRef = useRef<Float32Array>(buildFireGrid());
   const riskColor = RISK_COLORS[risk];
-  const emberCount = lowDetail ? 1500 : 3500;
+
+  // Project FIRMS hotspots into scene coordinates. When no bbox is provided
+  // the projection is meaningless, so we skip multi-fire mode entirely.
+  const projected: ProjectedHotspot[] = useMemo(() => {
+    if (!hotspots || hotspots.length === 0 || !bbox) return [];
+    return hotspots.map((h, i) => {
+      const { x, z } = projectLatLon(h.lat, h.lon, { bbox, terrainSize: TERRAIN_SIZE });
+      return {
+        id: h.id ?? `hs_${i}`,
+        x,
+        z,
+        lat: h.lat,
+        lon: h.lon,
+        frp: Math.max(0, h.frp ?? 0),
+        confidence: h.confidence ?? "nominal",
+        brightTi4: h.brightTi4,
+        label: h.label,
+      };
+    });
+  }, [hotspots, bbox]);
+
+  // Multi-fire ignition mask — built once per hotspot set, then mutated by
+  // the simulator. Falls back to a single 3×3 seed at the origin when no
+  // hotspots are provided so legacy callers keep working.
+  const fireGridRef = useRef<Float32Array>(buildFireGrid());
+  useEffect(() => {
+    if (projected.length === 0) {
+      fireGridRef.current = buildFireGrid();
+      return;
+    }
+    fireGridRef.current = buildFireGrid(
+      projected.map((p) => ({ x: p.x, z: p.z, frp: p.frp })),
+    );
+  }, [projected]);
+
+  // Per-hotspot ember + smoke + warm-light cluster bookkeeping. We split
+  // the total ember pool across hotspots so the GPU cost is bounded
+  // regardless of N.
+  const totalEmbers = lowDetail ? 1500 : 3500;
+  const emberClusters =
+    projected.length === 0
+      ? [{ key: "default", x: 0, z: 0, count: totalEmbers }]
+      : projected.map((h) => {
+          const frpScale = Math.max(0.4, Math.min(1.5, Math.sqrt(h.frp || 1) / 18));
+          return {
+            key: h.id,
+            x: h.x,
+            z: h.z,
+            count: Math.max(180, Math.floor((totalEmbers / projected.length) * frpScale)),
+          };
+        });
+  const smokeSources =
+    projected.length === 0
+      ? [{ key: "default", x: 0, z: 0, frp: 200 }]
+      : projected.map((h) => ({ key: h.id, x: h.x, z: h.z, frp: h.frp }));
+
+  // ─── camera-tour state ───
+  const [tourIndex, setTourIndex] = useState(0);
+  const [tourPaused, setTourPaused] = useState(false);
+  const tourActive = tourMode && projected.length > 1;
+
+  useEffect(() => {
+    if (!tourActive || tourPaused) return;
+    const id = window.setInterval(() => {
+      setTourIndex((i) => (i + 1) % projected.length);
+    }, 4000);
+    return () => window.clearInterval(id);
+  }, [tourActive, tourPaused, projected.length]);
+
+  const handleSetIndex = useCallback((n: number) => {
+    setTourIndex(n);
+    setTourPaused(true);
+  }, []);
 
   return (
     <div className="relative h-full w-full bg-black">
@@ -708,18 +975,21 @@ export function FireSimulator3D({
         <color attach="background" args={["#000000"]} />
         <ambientLight intensity={0.32} />
         <directionalLight position={[8, 10, 5]} intensity={0.6} />
-        <pointLight
-          position={[0, 0.6, 0]}
-          color={new THREE.Color(riskColor[0], riskColor[1], riskColor[2])}
-          intensity={2.5}
-          distance={10}
-        />
+        {smokeSources.map((s) => (
+          <pointLight
+            key={`pl_${s.key}`}
+            position={[s.x, 0.6, s.z]}
+            color={new THREE.Color(riskColor[0], riskColor[1], riskColor[2])}
+            intensity={smokeSources.length > 1 ? 1.6 : 2.5}
+            distance={smokeSources.length > 1 ? 7 : 10}
+          />
+        ))}
         <Stars radius={70} depth={50} count={1000} factor={1.6} fade speed={0.3} />
 
-        {/* Cinematic intro: pulls in from a 28/22/28 wide region view to a
-            12/8/14 fire-focused view over 2.5s on mount. After the intro
-            completes, OrbitControls take full ownership. */}
-        <CinematicIntro />
+        {/* Cinematic intro is suppressed while a tour is active so the tour
+            camera owns the view. */}
+        <CinematicIntro enabled={!tourActive} />
+        <CameraTour hotspots={projected} active={tourActive} index={tourIndex} />
 
         <Terrain fireGridRef={fireGridRef} windDirDeg={windDirDeg} windSpeedMs={windSpeedMs} />
         <SpreadRings
@@ -727,14 +997,27 @@ export function FireSimulator3D({
           predicted6hAcres={predicted6hAcres}
           predicted24hAcres={predicted24hAcres}
         />
-        <Embers
-          windDirDeg={windDirDeg}
-          windSpeedMs={windSpeedMs}
-          riskColor={riskColor}
-          count={emberCount}
-        />
-        <SmokeColumn windDirDeg={windDirDeg} windSpeedMs={windSpeedMs} />
-        <Landmarks landmarks={landmarks} />
+        {emberClusters.map((c) => (
+          <group key={`embers_${c.key}`} position={[c.x, 0, c.z]}>
+            <Embers
+              windDirDeg={windDirDeg}
+              windSpeedMs={windSpeedMs}
+              riskColor={riskColor}
+              count={c.count}
+            />
+          </group>
+        ))}
+        {smokeSources.map((s) => (
+          <group
+            key={`smoke_${s.key}`}
+            position={[s.x, 0, s.z]}
+            scale={0.6 + Math.min(1.2, Math.sqrt(s.frp || 1) / 22)}
+          >
+            <SmokeColumn windDirDeg={windDirDeg} windSpeedMs={windSpeedMs} />
+          </group>
+        ))}
+        <Landmarks landmarks={landmarks} showIncident={projected.length === 0} />
+        {projected.length > 0 && <HotspotLabels hotspots={projected} />}
         {resources.map((r) => (
           <DispatchedUnit key={r.id} res={r} />
         ))}
@@ -746,8 +1029,18 @@ export function FireSimulator3D({
           minDistance={5}
           maxDistance={45}
           maxPolarAngle={Math.PI / 2.05}
+          enabled={!tourActive}
         />
       </Canvas>
+      {tourActive && (
+        <TourControls
+          hotspots={projected}
+          index={tourIndex}
+          setIndex={handleSetIndex}
+          paused={tourPaused}
+          setPaused={setTourPaused}
+        />
+      )}
     </div>
   );
 }
